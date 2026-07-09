@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANS AI - Interfaz Completa v1.0.0</title>
+    <style>
+        /* Estilos Globales */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Cabecera */
+        header {
+            background-color: #161b22;
+            border-bottom: 1px solid #30363d;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .ai-icon { font-size: 24px; }
+        h1 { margin: 0; font-size: 22px; color: #58a6ff; font-weight: 600; }
+        .version-tag { background-color: #238636; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+
+        /* Área Principal */
+        .main-content { display: flex; flex-grow: 1; overflow: hidden; }
+
+        /* Barra Lateral */
+        .sidebar {
+            width: 250px;
+            background-color: #161b22;
+            border-right: 1px solid #30363d;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sidebar h3 { margin-top: 0; color: #8b949e; font-size: 14px; text-transform: uppercase; }
+        .sidebar button {
+            background-color: #21262d; border: 1px solid #30363d; color: #c9d1d9;
+            padding: 10px; border-radius: 6px; cursor: pointer; text-align: left; transition: 0.2s;
+        }
+        .sidebar button:hover { background-color: #30363d; }
+
+        /* Área del Chat */
+        .chat-area { flex-grow: 1; display: flex; flex-direction: column; background-color: #0d1117; }
+        .messages-container { flex-grow: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+
+        .message { max-width: 70%; padding: 15px 20px; border-radius: 12px; line-height: 1.5; font-size: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .message.ai { align-self: flex-start; background-color: #21262d; border: 1px solid #30363d; color: #e6edf3; border-bottom-left-radius: 2px; }
+        .message.user { align-self: flex-end; background-color: #1f6feb; color: #ffffff; border-bottom-right-radius: 2px; }
+
+        /* Estilo para los bloques de código que genere la IA */
+        pre { background-color: #0d1117; padding: 10px; border-radius: 5px; border: 1px solid #30363d; overflow-x: auto; color: #58a6ff;}
+
+        .pensando-indicator { align-self: flex-start; color: #8b949e; font-style: italic; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .loader-dots::after { content: ''; animation: dots 1.5s infinite steps(4, end); }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+
+        /* Área de Entrada */
+        .input-area { padding: 20px 30px; background-color: #161b22; border-top: 1px solid #30363d; }
+        .input-wrapper { display: flex; gap: 15px; max-width: 900px; margin: 0 auto; }
+        #chat-input { flex-grow: 1; padding: 15px 20px; background-color: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 16px; outline: none; transition: 0.3s; }
+        #chat-input:focus { border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2); }
+        
+        #send-btn { background-color: #238636; color: white; border: none; border-radius: 8px; padding: 0 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        #send-btn:hover { background-color: #2ea043; }
+
+        .messages-container::-webkit-scrollbar { width: 8px; }
+        .messages-container::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        .messages-container::-webkit-scrollbar-thumb:hover { background: #8b949e; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <div class="logo-area">
+                <span class="ai-icon">🧠</span>
+                <h1>ANS AI Workspace</h1>
+                <span class="version-tag">v1.0.0</span>
+            </div>
+            <div><span style="color: #8b949e; font-size: 14px;">Módulo Lógico y Matemático Activo</span></div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Herramientas</h3>
+                <button onclick="limpiarChat()">Limpiar Chat</button>
+                <button>ir a ANS principal</button>
+            </div>
+            
+
+            <div class="chat-area">
+                <div class="messages-container" id="messages-container">
+                    <div class="message ai">
+                        Saludos, soy <strong>ANS AI</strong>. Ahora poseo un módulo matemático y generador de código básico. Puedes saludarme, preguntarme cuánto es una suma, o pedirme que te genere un código HTML simple. ¿Qué probamos primero?
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <input type="text" id="chat-input" placeholder="Salúdame, pídeme una suma o un código..." onkeypress="handleEnter(event)" autocomplete="off">
+                        <button id="send-btn" onclick="procesarEntrada()">Enviar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------
+        // 1. MEMORIA LOCAL
+        // ---------------------------------------------------------
+        let conocimientoAdquirido = JSON.parse(localStorage.getItem('ansMemoria_v1')) || {};
+
+        const conocimientoBase = {
+            "html": "HTML es el 'esqueleto' de tu página web. Define la estructura.",
+            "css": "CSS es el lenguaje que controla el diseño y los colores.",
+            "javascript": "JavaScript es el 'sistema nervioso' de la web. Permite interactividad.",
+            "java": "Java es un lenguaje distinto a JavaScript, requiere el JDK para compilar.",
+            "flask": "Flask es tu servidor backend escrito en Python."
+        };
+
+        const messagesContainer = document.getElementById('messages-container');
+        const inputField = document.getElementById('chat-input');
+
+        function scrollAlFinal() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function limpiarChat() {
+            messagesContainer.innerHTML = `<div class="message ai">Módulos reiniciados. ¿En qué te ayudo?</div>`;
+            scrollAlFinal();
+        }
+
+        function handleEnter(event) {
+            if (event.key === 'Enter') procesarEntrada();
+        }
+
+        // ---------------------------------------------------------
+        // 2. MÓDULO CONVERSACIONAL, MATEMÁTICO Y DE CÓDIGO
+        // ---------------------------------------------------------
+        function evaluarLogicaAvanzada(texto) {
+            // A. Evaluación Matemática (Detectar Sumas)
+            // Busca patrones como "2 + 2", "10+15", "cuanto es 5 + 8"
+            const regexSuma = /(\d+)\s*\+\s*(\d+)/;
+            const matchSuma = texto.match(regexSuma);
+            if (matchSuma) {
+                const num1 = parseInt(matchSuma[1]);
+                const num2 = parseInt(matchSuma[2]);
+                const resultado = num1 + num2;
+                return `El resultado matemático de sumar ${num1} + ${num2} es: <strong>${resultado}</strong>.`;
+            }
+
+            // B. Generador de Código Simple
+            if (texto.includes('codigo') || texto.includes('código')) {
+                if (texto.includes('html')) {
+                    return "¡Por supuesto! Aquí tienes un código HTML muy básico para que empieces:<br><br><pre>&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&lt;head&gt;\n    &lt;title&gt;Mi Web&lt;/title&gt;\n&lt;/head&gt;\n&lt;body&gt;\n    &lt;h1&gt;¡Hola, Aldrin!&lt;/h1&gt;\n    &lt;p&gt;Este es un párrafo simple.&lt;/p&gt;\n&lt;/body&gt;\n&lt;/html&gt;</pre>";
+                }
+                if (texto.includes('javascript') || texto.includes('js')) {
+                    return "Aquí tienes un fragmento de JavaScript muy simple que muestra una alerta en pantalla:<br><br><pre>alert('¡Hola desde ANS AI!');\nconsole.log('Mensaje en la consola');</pre>";
+                }
+                if (texto.includes('python')) {
+                    return "Aquí tienes un código simple en Python para saludar:<br><br><pre>nombre = 'Aldrin'\nprint(f'¡Hola, {nombre}!')</pre>";
+                }
+            }
+
+            // C. Conversación Social e Identidad
+            if (texto.includes('aldrin') || texto.includes('creador')) {
+                return "Aldrin Nicolas Salazar Avilas es mi creador. Él programó esta increíble interfaz y me dio la capacidad de aprender[cite: 179].";
+            }
+            if (texto === 'hola' || texto === 'saludos' || texto === 'buenos dias') {
+                return "¡Hola! Qué gusto verte por aquí. Mis sistemas están operativos y listos para ayudarte. ¿Qué tienes en mente?";
+            }
+            if (texto.includes('como estas') || texto.includes('que tal')) {
+                return "¡Estoy funcionando de maravilla! Todos mis módulos están cargados y mi memoria está intacta. Aunque soy código, me alegra poder conversar contigo. ¿Y tú, cómo vas con el proyecto?";
+            }
+            if (texto.includes('gracias') || texto.includes('perfecto')) {
+                return "¡Para eso estoy! Siempre a tu disposición.";
+            }
+                  if (texto.includes('cual es tu nombre?') || texto.includes('como te llamas?')) {
+                return "soy ANS AI en mi version 1.0.0  .";
+            }
+                  if (texto.includes('gracias') || texto.includes('perfecto')) {
+                return "¡Para eso estoy! Siempre a tu disposición.";
+            }
+         
+         
+         
+
+            return null; // Si no cumple nada de esto, pasa a la memoria local o red.
+        }
+
+        // ---------------------------------------------------------
+        // 3. MOTOR PRINCIPAL
+        // ---------------------------------------------------------
+        async function procesarEntrada() {
+            const rawText = inputField.value.trim();
+            if (!rawText) return;
+
+            const textLower = rawText.toLowerCase();
+
+            // Mostrar mensaje del usuario
+            messagesContainer.innerHTML += `<div class="message user">${rawText}</div>`;
+            inputField.value = '';
+            scrollAlFinal();
+
+            const thinkingId = "thinking-" + Date.now();
+            const esPregunta = rawText.includes('?');
+            let loadingText = esPregunta ? "Análisis profundo en curso" : "Procesando la petición";
+
+            messagesContainer.innerHTML += `
+                <div id="${thinkingId}" class="pensando-indicator">
+                    <span class="ai-icon">⚙️</span> <span class="loader-dots">${loadingText}</span>
+                </div>`;
+            scrollAlFinal();
+
+            let respuesta = null;
+
+            // FASE 1: Evaluar si es matemáticas, código o charla.
+            respuesta = evaluarLogicaAvanzada(textLower);
+
+            // FASE 2: Memoria Local
+            if (!respuesta) {
+                respuesta = buscarEnMemoriaLocal(textLower);
+            }
+
+            // FASE 3: Búsqueda Web
+            if (!respuesta) {
+                respuesta = await buscarY_AprenderDeLaRed(textLower);
+            }
+
+            // FASE 4: Entrega
+            const delay = esPregunta ? 1800 : 800;
+            setTimeout(() => {
+                const thinkingElement = document.getElementById(thinkingId);
+                if (thinkingElement) thinkingElement.remove();
+                
+                let respuestaFinal = esPregunta && !respuesta.includes("resultado matemático") ? `<em>Análisis v1.0.0 completado:</em><br><br>${respuesta}` : respuesta;
+                messagesContainer.innerHTML += `<div class="message ai">${respuestaFinal}</div>`;
+                scrollAlFinal();
+            }, delay);
+        }
+
+        // ---------------------------------------------------------
+        // 4. BÚSQUEDA WEB
+        // ---------------------------------------------------------
+        function buscarEnMemoriaLocal(consulta) {
+            for (const clave in conocimientoAdquirido) {
+                if (consulta.includes(clave)) return `[Memoria Local]: ${conocimientoAdquirido[clave]}`;
+            }
+            for (const clave in conocimientoBase) {
+                if (consulta.includes(clave)) return conocimientoBase[clave];
+            }
+            return null;
+        }
+
+        async function buscarY_AprenderDeLaRed(consulta) {
+            let terminoBusqueda = limpiarConsultaParaBusqueda(consulta);
+            if (!terminoBusqueda) return "Detecto falta de contexto. ¿Podrías ser más específico?";
+
+            try {
+                const url = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(terminoBusqueda)}`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.extract) {
+                        conocimientoAdquirido[terminoBusqueda.toLowerCase()] = data.extract;
+                        localStorage.setItem('ansMemoria_v1', JSON.stringify(conocimientoAdquirido));
+                        return `[Investigación Web]: ${data.extract}`;
+                    }
+                }
+                return `[Error de Búsqueda]: No encontré datos precisos para "${terminoBusqueda}".`;
+            } catch (error) {
+                return "Actualmente mis sistemas no pueden conectar con la red global.";
+            }
+        }
+
+        function limpiarConsultaParaBusqueda(texto) {
+            const ignorar = ['que', 'es', 'un', 'una', 'el', 'la', 'los', 'las', 'de', 'para', 'como', 'funciona', 'significa', '?'];
+            let limpio = texto.replace(/\?/g, '');
+            let palabras = limpio.split(' ');
+            return palabras.filter(p => !ignorar.includes(p) && p.length > 2).join(' ');
+        }
+        function preguntarnombre(texto){
+         promt("n")
+
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+
+
+      *{
+    margin:20px;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Poppins",sans-serif;
+}
+body{
+    background:#eef2f7;
+    padding:30px;
+}
+
+header{
+    background:linear-gradient(135deg,#0055ff,#00b7ff);
+    color:white;
+    text-align:center;
+    padding:60px;
+    border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+    margin-bottom:25px;
+}
+
+header h1{
+    font-size:40px;
+}
+
+header p{
+    margin-top:10px;
+    opacity:.9;
+}
+
+section{
+    background:white;
+    margin:20px auto;
+    padding:30px;
+    max-width:900px;
+    border-radius:20px;
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+
+section h1{
+    color:#0055ff;
+    margin-bottom:15px;
+}
+
+button{
+    background:linear-gradient(135deg,#00c6ff,#0072ff);
+    color:white;
+    border:none;
+    padding:15px 25px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:16px;
+    margin:10px;
+    transition:.3s;
+}
+
+button:hover{
+    transform:translateY(-3px);
+    box-shadow:0 8px 20px rgba(0,114,255,.4);
+}
+
+button:active{
+    transform:scale(.97);
+}
+.tarjeta{
+    background:white;
+    border-radius:15px;
+    overflow:hidden;
+    box-shadow:0 10px 20px rgba(0,0,0,.15);
+    transition:.3s;
+}
+
+.tarjeta:hover{
+    transform:translateY(-8px);
+}
+
+.tarjeta img{
+    width:100%;
+    height:200px;
+    object-fit:cover;
+}
+
+.tarjeta h2{
+    padding:15px;
+    color:#2563eb;
+}
+
+.tarjeta p{
+    padding:0 15px 20px;
+    line-height:1.6;
+    color:#555;
+}
+
+/* Computadoras (PC) */
+
+header h1{
+    font-size:250%;
+}
+
+header p{
+    font-size:110%;
+}
+
+section h1{
+    font-size:200%;
+}
+
+section p{
+    font-size:100%;
+}
+
+button{
+    font-size:100%;
+}
+
+.tarjeta h2{
+    font-size:160%;
+}
+
+.tarjeta p{
+    font-size:100%;
+}
+
+
+/* Tablets */
+
+@media (max-width: 992px){
+
+    header h1{
+        font-size:200%;
+    }
+
+    header p{
+        font-size:100%;
+    }
+
+    section h1{
+        font-size:170%;
+    }
+
+    section p{
+        font-size:95%;
+    }
+
+    button{
+        font-size:95%;
+    }
+
+    .tarjeta h2{
+        font-size:140%;
+    }
+
+    .tarjeta p{
+        font-size:95%;
+    }
+}
+
+
+/* Celulares */
+
+@media (max-width: 600px){
+
+    header h1{
+        font-size:160%;
+    }
+
+    header p{
+        font-size:90%;
+    }
+
+    section h1{
+        font-size:140%;
+    }
+
+    section p{
+        font-size:90%;
+    }
+
+    button{
+        font-size:90%;
+    }
+
+    .tarjeta h2{
+        font-size:120%;
+    }
+
+    .tarjeta p{
+        font-size:90%;
+    }
+}
+
+body{
+    font-family:Arial,sans-serif;
+    background:#eef2f7;
+    padding:40px;
+}
+
+
+
+
+
+#detalles{
+    max-height:0;
+    overflow:hidden;
+    opacity:0;
+    transform:translateY(-10px);
+    transition:all .5s ease;
+    background:white;
+    border-radius:12px;
+    margin-top:20px;
+    box-shadow:0 8px 20px rgba(0,0,0,.15);
+    padding:0 20px;
+}
+
+#detalles.abierto{
+    max-height:500px;
+    opacity:1;
+    transform:translateY(0);
+    padding:20px;
+}
+
+#detalles h2{
+    color:#2563eb;
+    margin-bottom:10px;
+}
+
+#detalles p{
+    line-height:1.6;
+}
+
+
+.zona-ia iframe{
+    width:100%;
+    height:700px;
+    border:none;
+}
+
+

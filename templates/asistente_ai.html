@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Programa de aprendizaje de informática</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Poppins",sans-serif;
+}
+
+body{
+    background:#eef2f7;
+    padding:30px;
+}
+
+header{
+    background:linear-gradient(135deg,#0055ff,#00b7ff);
+    color:white;
+    text-align:center;
+    padding:60px;
+    border-radius:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+    margin-bottom:25px;
+}
+
+header h1{
+    font-size:40px;
+}
+
+header p{
+    margin-top:10px;
+    opacity:.9;
+}
+
+section{
+    background:white;
+    margin:20px auto;
+    padding:30px;
+    max-width:900px;
+    border-radius:20px;
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+
+section h1{
+    color:#0055ff;
+    margin-bottom:15px;
+}
+
+button{
+    background:linear-gradient(135deg,#00c6ff,#0072ff);
+    color:white;
+    border:none;
+    padding:15px 25px;
+    border-radius:12px;
+    cursor:pointer;
+    font-size:16px;
+    margin:10px;
+    transition:.3s;
+}
+
+button:hover{
+    transform:translateY(-3px);
+    box-shadow:0 8px 20px rgba(0,114,255,.4);
+}
+
+button:active{
+    transform:scale(.97);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+    <h1>💻 Programa de aprendizaje de informática</h1>
+    <p>Aprende informática jugando</p>
+</header>
+
+<section>
+    <h1>🎯 Propósito</h1>
+    <p>El propósito de esta web es que niños y adolescentes puedan aprender lo básico de la informática mediante juegos interactivos.</p>
+</section>
+
+<section>
+    <h1>🎮 Juegos disponibles</h1>
+
+    <button onclick="window.location.href='/Partes del computador'">
+        Buscar las partes del computador
+    </button>
+
+    <button onclick="window.location.href='/robot_controler'">
+        Controla el robot
+    </button>
+
+</section>
+
+<section>
+    <h1>📚 Guías</h1>
+    <button onclick="window.location.href='/Guia_partes_del_computador'">
+        Guía de las partes del computador
+    </button>
+</section>
+
+</body>
+</html>
+
+
+ <div id="ai-button-container">
+    <button id="abrir-ai-btn" onclick="toggleAI()">
+        <span class="ai-icon">🧠</span> ANS AI
+    </button>
+</div>
+
+<div id="ai-chat-window" style="display: none;">
+    <div id="ai-header">
+        <div class="header-info">
+            <span class="status-dot"></span>
+            <span>ANS AI v1.0.0</span>
+        </div>
+        <button id="cerrar-ai-btn" onclick="toggleAI()">✖</button>
+    </div>
+    
+    <div id="ai-messages" class="messages-container">
+        <div class="message ai">
+            Saludos, soy <strong>ANS AI</strong>. Mi módulo lógico está activo. Puedes saludarme, pedirme una suma matemática (ej: 50 + 20), pedirme código básico, o usar el signo "<strong>?</strong>" para un análisis profundo.
+        </div>
+    </div>
+    
+    <div id="ai-input-area" class="input-area">
+        <input type="text" id="ai-input" placeholder="Escribe tu consulta aquí..." onkeypress="manejarEnter(event)" autocomplete="off">
+        <button id="enviar-ai-btn" onclick="procesarEntrada()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+        </button>
+    </div>
+</div>
+
+<style>
+    /* Botón Flotante */
+    #ai-button-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; font-family: 'Segoe UI', sans-serif; }
+    #abrir-ai-btn { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: white; border: 2px solid #00f2fe; border-radius: 30px; padding: 12px 25px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 8px 20px rgba(0, 242, 254, 0.3); transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; }
+    #abrir-ai-btn:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0, 242, 254, 0.5); border-color: #4facfe; }
+
+    /* Ventana del Widget */
+    #ai-chat-window { position: fixed; bottom: 90px; right: 25px; width: 380px; height: 550px; background: #0d1117; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 1px solid #30363d; display: flex; flex-direction: column; z-index: 10000; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+    
+    /* Cabecera */
+    #ai-header { background: #161b22; color: #58a6ff; padding: 15px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
+    .header-info { display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 10px; height: 10px; background-color: #238636; border-radius: 50%; box-shadow: 0 0 10px #238636; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(35, 134, 54, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(35, 134, 54, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); } }
+    #cerrar-ai-btn { background: none; border: none; color: #8b949e; cursor: pointer; font-size: 16px; transition: color 0.3s; }
+    #cerrar-ai-btn:hover { color: #ff4757; }
+
+    /* Área de Mensajes */
+    .messages-container { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+    .messages-container::-webkit-scrollbar { width: 6px; }
+    .messages-container::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
+    
+    .message { max-width: 85%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 14px; word-wrap: break-word; }
+    .message.ai { align-self: flex-start; background-color: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-bottom-left-radius: 2px; }
+    .message.user { align-self: flex-end; background-color: #1f6feb; color: #ffffff; border-bottom-right-radius: 2px; }
+    
+    /* Código Generado */
+    pre { background-color: #010409; padding: 10px; border-radius: 6px; border: 1px solid #30363d; overflow-x: auto; color: #58a6ff; font-family: monospace; font-size: 13px; }
+
+    /* Indicador de Pensamiento */
+    .pensando-indicator { align-self: flex-start; color: #8b949e; font-style: italic; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .loader-dots::after { content: ''; animation: dots 1.5s infinite steps(4, end); }
+    @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+
+    /* Área de Input */
+    .input-area { display: flex; padding: 15px; background: #161b22; border-top: 1px solid #30363d; align-items: center; }
+    #ai-input { flex-grow: 1; padding: 12px 15px; background: #0d1117; border: 1px solid #30363d; border-radius: 20px; color: #c9d1d9; outline: none; font-size: 14px; transition: border-color 0.3s; }
+    #ai-input:focus { border-color: #58a6ff; }
+    #enviar-ai-btn { background: #238636; border: none; width: 42px; height: 42px; margin-left: 10px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+    #enviar-ai-btn:hover { background: #2ea043; transform: scale(1.05); }
+</style>
+
+<script>
+    // ---------------------------------------------------------
+    // MEMORIA BASE Y LOCALSTORAGE
+    // ---------------------------------------------------------
+    let conocimientoAdquirido = JSON.parse(localStorage.getItem('ansMemoria_widget')) || {};
+
+    const conocimientoBase = {
+        "html": "HTML es el 'esqueleto' de tu página web. Define la estructura.",
+        "css": "CSS es el lenguaje que controla el diseño y los colores.",
+        "javascript": "JavaScript es el 'sistema nervioso' de la web. Permite interactividad.",
+        "java": "Java es un lenguaje distinto a JavaScript, requiere el JDK para compilar.",
+        "flask": "Flask es tu servidor backend escrito en Python."
+    };
+
+    const messagesContainer = document.getElementById('ai-messages');
+    const inputField = document.getElementById('ai-input');
+
+    // ---------------------------------------------------------
+    // CONTROL DE INTERFAZ
+    // ---------------------------------------------------------
+    function toggleAI() {
+        const chat = document.getElementById('ai-chat-window');
+        chat.style.display = (chat.style.display === 'none' || chat.style.display === '') ? 'flex' : 'none';
+        if (chat.style.display === 'flex') inputField.focus();
+    }
+
+    function scrollAlFinal() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function manejarEnter(event) {
+        if (event.key === 'Enter') procesarEntrada();
+    }
+
+    // ---------------------------------------------------------
+    // MÓDULO LÓGICO, MATEMÁTICO Y CONVERSACIONAL
+    // ---------------------------------------------------------
+    function evaluarLogicaAvanzada(texto) {
+        // A. Evaluación Matemática (Sumas con RegEx)
+        const regexSuma = /(\d+)\s*\+\s*(\d+)/;
+        const matchSuma = texto.match(regexSuma);
+        if (matchSuma) {
+            const num1 = parseInt(matchSuma[1]);
+            const num2 = parseInt(matchSuma[2]);
+            return `El resultado matemático de sumar ${num1} + ${num2} es: <strong>${num1 + num2}</strong>.`;
+        }
+
+        // B. Generador de Código Simple
+        if (texto.includes('codigo') || texto.includes('código')) {
+            if (texto.includes('html')) {
+                return "Aquí tienes un código HTML básico:<br><br><pre>&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&lt;head&gt;\n    &lt;title&gt;Web&lt;/title&gt;\n&lt;/head&gt;\n&lt;body&gt;\n    &lt;h1&gt;¡Hola, Aldrin!&lt;/h1&gt;\n&lt;/body&gt;\n&lt;/html&gt;</pre>";
+            }
+            if (texto.includes('javascript') || texto.includes('js')) {
+                return "Un fragmento simple de JS para una alerta:<br><br><pre>alert('¡ANS AI en acción!');</pre>";
+            }
+            if (texto.includes('python')) {
+                return "Código Python para saludar:<br><br><pre>nombre = 'Aldrin'\nprint(f'¡Hola, {nombre}!')</pre>";
+            }
+        }
+
+        // C. Identidad y Charla
+        if (texto.includes('aldrin') || texto.includes('creador')) {
+            return "Aldrin Nicolas Salazar Avilas es mi creador. Él programó esta increíble interfaz y mi lógica de aprendizaje.";
+        }
+        if (texto.includes('quien eres') || texto.includes('ans ai')) {
+            return "Soy ANS AI, un asistente virtual avanzado creado por Aldrin. Estoy diseñado para procesar lógica, matemáticas y código en tiempo real.";
+        }
+        if (texto === 'hola' || texto === 'saludos') {
+            return "¡Hola! Mis sistemas están operativos. ¿En qué te puedo asistir hoy?";
+        }
+        if (texto.includes('como estas') || texto.includes('que tal')) {
+            return "Como IA no tengo sentimientos, pero todos mis módulos lógicos y de memoria funcionan perfectamente. ¿Y tú, cómo vas con tu proyecto web?";
+        }
+
+        return null;
+    }
+
+    // ---------------------------------------------------------
+    // MOTOR PRINCIPAL DE PROCESAMIENTO
+    // ---------------------------------------------------------
+    async function procesarEntrada() {
+        const rawText = inputField.value.trim();
+        if (!rawText) return;
+        const textLower = rawText.toLowerCase();
+
+        // Imprimir Usuario
+        messagesContainer.innerHTML += `<div class="message user">${rawText}</div>`;
+        inputField.value = '';
+        scrollAlFinal();
+
+        // Estado Pensando
+        const thinkingId = "thinking-" + Date.now();
+        const esPregunta = rawText.includes('?');
+        let loadingText = esPregunta ? "Analizando a profundidad" : "Procesando petición";
+
+        messagesContainer.innerHTML += `
+            <div id="${thinkingId}" class="pensando-indicator">
+                <span class="ai-icon">⚙️</span> <span class="loader-dots">${loadingText}</span>
+            </div>`;
+        scrollAlFinal();
+
+        let respuesta = null;
+
+        // FASE 1: Lógica (Mates, Código, Charla)
+        respuesta = evaluarLogicaAvanzada(textLower);
+
+        // FASE 2: Memoria Local
+        if (!respuesta) respuesta = buscarEnMemoriaLocal(textLower);
+
+        // FASE 3: Búsqueda Web
+        if (!respuesta) respuesta = await buscarY_AprenderDeLaRed(textLower);
+
+        // Renderizado Final
+        const delay = esPregunta ? 2200 : 800;
+        setTimeout(() => {
+            const thinkingElement = document.getElementById(thinkingId);
+            if (thinkingElement) thinkingElement.remove();
+            
+            let respuestaFinal = esPregunta && !respuesta.includes("resultado matemático") ? `<em>Análisis completado:</em><br><br>${respuesta}` : respuesta;
+            messagesContainer.innerHTML += `<div class="message ai">${formatearRespuesta(respuestaFinal)}</div>`;
+            scrollAlFinal();
+        }, delay);
+    }
+
+    function buscarEnMemoriaLocal(consulta) {
+        for (const clave in conocimientoAdquirido) {
+            if (consulta.includes(clave)) return `[Memoria Local]: ${conocimientoAdquirido[clave]}`;
+        }
+        for (const clave in conocimientoBase) {
+            if (consulta.includes(clave)) return conocimientoBase[clave];
+        }
+        return null;
+    }
+
+    async function buscarY_AprenderDeLaRed(consulta) {
+        let terminoBusqueda = limpiarConsulta(consulta);
+        if (!terminoBusqueda) return "Detecto falta de contexto. ¿Podrías ser más específico?";
+
+        try {
+            const url = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(terminoBusqueda)}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.extract) {
+                    conocimientoAdquirido[terminoBusqueda.toLowerCase()] = data.extract;
+                    localStorage.setItem('ansMemoria_widget', JSON.stringify(conocimientoAdquirido));
+                    return `[Red Global]: ${data.extract}`;
+                }
+            }
+            return `Mis algoritmos no encontraron datos exactos para "${terminoBusqueda}".`;
+        } catch (error) {
+            return "Mis sistemas no pueden conectar con la red externa en este momento.";
+        }
+    }
+
+    function limpiarConsulta(texto) {
+        const ignorar = ['que', 'es', 'un', 'una', 'el', 'la', 'los', 'las', 'de', 'para', 'como', 'funciona', 'significa', '?'];
+        let limpio = texto.replace(/\?/g, '');
+        return limpio.split(' ').filter(p => !ignorar.includes(p) && p.length > 2).join(' ');
+    }
+
+    function formatearRespuesta(texto) {
+        return texto.replace(/\n/g, '<br><br>');
+    }
+</script>

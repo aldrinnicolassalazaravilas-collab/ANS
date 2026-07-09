@@ -1,0 +1,50 @@
+<html>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="../static/css/style.css">
+<script src="../static/js/detalles-recurso.js"></script>
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Proyecto ANS</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header>
+    <h1>Acerca de nosotros</h1>
+    <p>Bienvenido a nuestro proyecto de ANS. Aquí encontrarás información relevante y actualizada sobre nuestro trabajo y objetivos.</p>
+</header>
+
+<section>
+    <h1>proyectos creados por ANS</h1>
+ <button id="boton" onclick="mostrarDetalles()">
+    Mostrar detalles
+</button>
+ <button onclick="window.location.href='/AI-worspase'">
+    Espacio de AI
+</button>
+
+<div id="detalles">
+    <h1>Programa Informático Atrapa Sueños</h1>
+    <p>Este programa esta hecho para que niños y adolecentes puedan aprender los conceptos basicos de la informatica que fue solicitada por un comunicador social.Cada parte de esa web fue padida y nosotros la hicimos    <button onclick="window.location.href='https://programa-informatico-atrapa-suenos.onrender.com/'">
+    Conoce Más
+</button></p>
+</div>
+ 
+
+</section>
+
+<button onclick="window.location.href='/'">
+    regresar a la pagina incial
+</button>
+
+<script src="{{ url_for('static', filename='js/detalles-recurso.js') }}"></script>
+</body>
+
+
+</html>
