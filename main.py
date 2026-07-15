@@ -990,24 +990,27 @@ def reasoning_search(term):
     term_lower = normalize_text(term)
     best_key = None
     best_score = 0
+    term_words = set(term_lower.split())
     for key in CONCEPT_DB:
         key_norm = normalize_text(key)
         if key_norm == term_lower:
             return key
-        if term_lower in key_norm or key_norm in term_lower:
-            score = len(key_norm) / max(len(term_lower), 1)
-            if score > best_score:
-                best_score = score
-                best_key = key
-        key_words = key_norm.split()
-        term_words = term_lower.split()
-        common = sum(1 for kw in key_words if kw in " ".join(term_words))
+        key_len = len(key_norm)
+        term_len = len(term_lower)
+        if key_len >= 4 and term_len >= 4:
+            if key_norm in term_lower or term_lower in key_norm:
+                score = min(key_len, term_len) / max(key_len, term_len)
+                if score > best_score:
+                    best_score = score
+                    best_key = key
+        key_words = set(key_norm.split())
+        common = len(key_words & term_words)
         if common >= 1 and len(key_words) > 0:
             ratio = common / len(key_words)
             if ratio > best_score:
                 best_score = ratio
                 best_key = key
-    if best_key and best_score > 0.25:
+    if best_key and best_score > 0.3:
         return best_key
     return None
 
@@ -1843,6 +1846,7 @@ def detect_intent(text, memory):
 def extract_known_answer(query, memory):
     q = normalize_text(query)
     learned = memory.get("learned", {})
+    q_words = set(q.split())
 
     best_match = None
     best_score = 0
@@ -1852,35 +1856,22 @@ def extract_known_answer(query, memory):
             key_norm = normalize_text(key)
             if not key_norm:
                 continue
-            if key_norm in q:
-                score = len(key_norm) / len(q) if len(q) > 0 else 0
-                if score > best_score:
-                    best_score = score
-                    best_match = value
-            elif q in key_norm:
-                score = len(q) / len(key_norm) if len(key_norm) > 0 else 0
-                if score > best_score:
-                    best_score = score
-                    best_match = value
-
-    if best_match and best_score > 0.15:
-        return best_match
-
-    query_words = q.split()
-    for source in (learned, KNOWLEDGE_BASE):
-        for key, value in source.items():
-            key_norm = normalize_text(key)
-            if not key_norm:
-                continue
-            key_words = key_norm.split()
-            matches = sum(1 for kw in key_words if any(w.startswith(kw[:4]) for w in query_words if len(kw) >= 4))
-            if matches >= 1 and len(key_words) > 0:
-                ratio = matches / len(key_words)
+            key_words = set(key_norm.split())
+            common = len(key_words & q_words)
+            if common > 0 and len(key_words) > 0:
+                ratio = common / len(key_words)
                 if ratio > best_score:
                     best_score = ratio
                     best_match = value
+            if key_norm == q:
+                best_score = 1.0
+                best_match = value
+                break
 
-    return best_match
+    if best_match and best_score > 0.3:
+        return best_match
+
+    return None
 
 
 def learn_fact(text, memory):
