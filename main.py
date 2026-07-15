@@ -41,8 +41,75 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:5000/auth/google/callback")
 
+KV_REST_API_URL = os.environ.get("KV_REST_API_URL", "")
+KV_REST_API_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")
+
+def kv_available():
+    return bool(KV_REST_API_URL and KV_REST_API_TOKEN)
+
+def kv_get(key):
+    if not kv_available():
+        return None
+    try:
+        url = f"{KV_REST_API_URL}/get/{key}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {KV_REST_API_TOKEN}"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("result")
+    except Exception:
+        return None
+
+def kv_set(key, value):
+    if not kv_available():
+        return False
+    try:
+        url = f"{KV_REST_API_URL}/set/{key}"
+        body = json.dumps(value).encode("utf-8")
+        req = urllib.request.Request(url, data=body, headers={
+            "Authorization": f"Bearer {KV_REST_API_TOKEN}",
+            "Content-Type": "application/json",
+        })
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return True
+    except Exception:
+        return False
+
+def kv_delete(key):
+    if not kv_available():
+        return False
+    try:
+        url = f"{KV_REST_API_URL}/del/{key}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {KV_REST_API_TOKEN}"})
+        req.method = "POST"
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return True
+    except Exception:
+        return False
+
+def kv_exists(key):
+    if not kv_available():
+        return False
+    try:
+        url = f"{KV_REST_API_URL}/exists/{key}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {KV_REST_API_TOKEN}"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("result", 0) > 0
+    except Exception:
+        return False
+
 
 def load_users():
+    if kv_available():
+        data = kv_get("ans_users")
+        if data is not None:
+            if isinstance(data, str):
+                try:
+                    data = json.loads(data)
+                except Exception:
+                    pass
+            if isinstance(data, dict):
+                return data
     if USER_FILE.exists():
         try:
             return json.loads(USER_FILE.read_text(encoding="utf-8"))
@@ -52,10 +119,24 @@ def load_users():
 
 
 def save_users(users):
+    if kv_available():
+        kv_set("ans_users", json.dumps(users))
     USER_FILE.write_text(json.dumps(users, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def load_user_history(user_id, modelo):
+    if kv_available():
+        safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)
+        key = f"ans_hist_{safe_id}_{modelo}"
+        data = kv_get(key)
+        if data is not None:
+            if isinstance(data, str):
+                try:
+                    return json.loads(data)
+                except Exception:
+                    pass
+            if isinstance(data, list):
+                return data
     HISTORY_DIR.mkdir(exist_ok=True)
     safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)
     path = HISTORY_DIR / f"{safe_id}_{modelo}.json"
@@ -68,6 +149,10 @@ def load_user_history(user_id, modelo):
 
 
 def save_user_history(user_id, modelo, history):
+    if kv_available():
+        safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)
+        key = f"ans_hist_{safe_id}_{modelo}"
+        kv_set(key, json.dumps(history[-200:]))
     HISTORY_DIR.mkdir(exist_ok=True)
     safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)
     path = HISTORY_DIR / f"{safe_id}_{modelo}.json"
@@ -1331,6 +1416,17 @@ def normalize_text(text):
 
 
 def load_memory():
+    if kv_available():
+        data = kv_get("ans_memory")
+        if data is not None:
+            if isinstance(data, str):
+                try:
+                    data = json.loads(data)
+                except Exception:
+                    pass
+            if isinstance(data, dict):
+                data.setdefault("learned", {})
+                return data
     if MEMORY_FILE.exists():
         try:
             data = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
@@ -1343,6 +1439,8 @@ def load_memory():
 
 
 def save_memory(memory):
+    if kv_available():
+        kv_set("ans_memory", json.dumps(memory))
     MEMORY_FILE.write_text(json.dumps(memory, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
