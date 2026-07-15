@@ -33,6 +33,12 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 app.secret_key = os.environ.get("SECRET_KEY", "ans-ai-secret-key-change-in-production-2024")
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_NAME="ans_session",
+)
 MEMORY_FILE = BASE_DIR / "ans_memory.json"
 USER_FILE = BASE_DIR / "ans_users.json"
 HISTORY_DIR = BASE_DIR / "ans_history"
