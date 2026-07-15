@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANS AI | Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070b14;
+            --panel: #0f1624;
+            --panel-2: #131c2f;
+            --line: rgba(120, 145, 180, 0.15);
+            --text: #e8eef8;
+            --muted: #98a8c3;
+            --accent: #57a6ff;
+            --accent-2: #34d399;
+            --danger: #ff6b6b;
+            --warning: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Inter", sans-serif;
+            padding: 24px;
+        }
+        .app { max-width: 1300px; margin: 0 auto; }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+        }
+        .header h1 {
+            font-size: 26px; font-weight: 800;
+            background: linear-gradient(135deg, #57a6ff, #34d399);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn {
+            padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line);
+            font-size: 13px; font-weight: 600; font-family: inherit;
+            cursor: pointer; transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(87,166,255,0.3); }
+        .btn-danger { background: rgba(255,107,107,0.1); color: var(--danger); border-color: rgba(255,107,107,0.2); }
+        .btn-danger:hover { background: rgba(255,107,107,0.2); }
+        .btn-ghost { background: rgba(255,255,255,0.03); color: var(--muted); }
+        .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px; margin-bottom: 28px;
+        }
+        .stat-card {
+            background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+            padding: 18px; text-align: center;
+        }
+        .stat-number { font-size: 32px; font-weight: 800; color: var(--accent); }
+        .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+        .section { margin-bottom: 28px; }
+        .section-title {
+            font-size: 18px; font-weight: 700; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card {
+            background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; overflow-x: auto;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
+        td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .badge {
+            display: inline-flex; padding: 3px 10px; border-radius: 999px;
+            font-size: 11px; font-weight: 600;
+        }
+        .badge-green { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.15); }
+        .badge-orange { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.15); }
+
+        .memory-item {
+            display: flex; justify-content: space-between; gap: 12px;
+            padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 13px;
+        }
+        .memory-key { color: var(--accent); font-weight: 600; min-width: 150px; }
+        .memory-val { color: var(--text); word-break: break-word; }
+
+        .empty { color: var(--muted); text-align: center; padding: 30px; font-style: italic; }
+
+        .hist-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
+        }
+        .hist-name { color: var(--text); font-family: monospace; }
+        .hist-size { color: var(--muted); }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600;
+            background: rgba(52,211,153,0.9); color: #000;
+            opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
+        }
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 640px) {
+            body { padding: 14px; }
+            .header { flex-direction: column; align-items: stretch; }
+        }
+
+        .user-pic { width: 26px; height: 26px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <h1>Panel de Administracion ANS AI</h1>
+            <div class="header-actions">
+                <a href="/AI-worspase" class="btn btn-ghost">Volver al AI</a>
+                <a href="/logout" class="btn btn-danger">Salir</a>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">{{ users|length }}</div><div class="stat-label">Usuarios</div></div>
+            <div class="stat-card"><div class="stat-number">{{ concepts }}</div><div class="stat-label">Conceptos base</div></div>
+            <div class="stat-card"><div class="stat-number">{{ memory }}</div><div class="stat-label">Datos aprendidos</div></div>
+            <div class="stat-card"><div class="stat-number">{{ history_files|length }}</div><div class="stat-label">Historiales</div></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Usuarios Registrados <span class="badge badge-green">{{ users|length }}</span></div>
+            <div class="card">
+                {% if users %}
+                <table>
+                    <tr><th>Usuario</th><th>Email</th><th>Registro</th></tr>
+                    {% for u in users %}
+                    <tr>
+                        <td>
+                            {% if u.picture %}<img src="{{ u.picture }}" class="user-pic">{% endif %}
+                            {{ u.name or 'Sin nombre' }}
+                        </td>
+                        <td>{{ u.email }}</td>
+                        <td>{{ u.created[:10] if u.created else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <div class="empty">No hay usuarios registrados aun</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Memoria Aprendida <span class="badge badge-orange">{{ memory }}</span></div>
+            <div class="card">
+                {% if memory_items %}
+                {% for key, val in memory_items %}
+                <div class="memory-item">
+                    <span class="memory-key">{{ key }}</span>
+                    <span class="memory-val">{{ val[:120] }}{% if val|length > 120 %}...{% endif %}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty">Aun no ha aprendido nada</div>
+                {% endif %}
+                <div style="margin-top:14px;display:flex;gap:8px;">
+                    <button class="btn btn-danger" onclick="limpiarMemoria()">Limpiar toda la memoria</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Historial de Conversaciones <span class="badge badge-green">{{ history_files|length }}</span></div>
+            <div class="card">
+                {% if history_files %}
+                {% for h in history_files %}
+                <div class="hist-item">
+                    <span class="hist-name">{{ h.name }}</span>
+                    <span class="hist-size">{{ h.size }} mensajes · {{ h.updated[:19] }}</span>
+                </div>
+                {% endfor %}
+                <div style="margin-top:14px;display:flex;gap:8px;">
+                    <button class="btn btn-danger" onclick="limpiarTodoHistorial()">Borrar todos los historiales</button>
+                </div>
+                {% else %}
+                <div class="empty">No hay historiales guardados</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Listo</div>
+
+    <script>
+        function mostrarToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        async function limpiarMemoria() {
+            if (!confirm('Seguro que quieres limpiar toda la memoria aprendida?')) return;
+            await fetch('/admin/clear-memory', { method: 'POST' });
+            mostrarToast('Memoria limpiada');
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        async function limpiarTodoHistorial() {
+            if (!confirm('Seguro que quieres borrar todos los historiales?')) return;
+            await fetch('/admin/clear-all-history', { method: 'POST' });
+            mostrarToast('Historiales borrados');
+            setTimeout(() => location.reload(), 1000);
+        }
+    </script>
+</body>
+</html>

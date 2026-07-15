@@ -123,7 +123,7 @@
         /* === MODEL CARDS === */
         .model-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 16px;
             margin-top: 20px;
         }
@@ -160,6 +160,10 @@
             background: linear-gradient(90deg, #f59e0b, #ef4444);
         }
 
+        .model-card[data-model="modify"]::before {
+            background: linear-gradient(90deg, #a855f7, #ec4899);
+        }
+
         .model-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
@@ -190,6 +194,11 @@
         .model-card[data-model="gapi"] .model-icon {
             background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(239, 68, 68, 0.08));
             border: 1px solid rgba(245, 158, 11, 0.15);
+        }
+
+        .model-card[data-model="modify"] .model-icon {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(236, 72, 153, 0.08));
+            border: 1px solid rgba(168, 85, 247, 0.15);
         }
 
         .model-title {
@@ -249,6 +258,7 @@
 
         .model-card[data-model="flask"] .model-features li::before { background: #57a6ff; }
         .model-card[data-model="gapi"] .model-features li::before { background: #f59e0b; }
+        .model-card[data-model="modify"] .model-features li::before { background: #a855f7; }
 
         .model-note {
             font-size: 12px;
@@ -744,6 +754,12 @@
             color: #f59e0b;
         }
 
+        .model-toast.modify {
+            background: linear-gradient(135deg, rgba(15, 22, 36, 0.97), rgba(10, 18, 32, 0.97));
+            border: 1.5px solid rgba(168, 85, 247, 0.4);
+            color: #a855f7;
+        }
+
         .model-toast .toast-icon { font-size: 20px; }
 
         /* === CHAT HEADER COLOR BORDER === */
@@ -757,6 +773,11 @@
             background: linear-gradient(180deg, rgba(245, 158, 11, 0.04), transparent);
         }
 
+        .chat-header.modify-mode {
+            border-bottom: 2px solid rgba(168, 85, 247, 0.25);
+            background: linear-gradient(180deg, rgba(168, 85, 247, 0.04), transparent);
+        }
+
         .chat-avatar.flask-avatar {
             background: linear-gradient(135deg, rgba(87, 166, 255, 0.18), rgba(52, 211, 153, 0.10));
             border: 1px solid rgba(87, 166, 255, 0.25);
@@ -765,6 +786,11 @@
         .chat-avatar.gapi-avatar {
             background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(239, 68, 68, 0.10));
             border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        .chat-avatar.modify-avatar {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(236, 72, 153, 0.10));
+            border: 1px solid rgba(168, 85, 247, 0.25);
         }
 
         .model-badge {
@@ -790,6 +816,12 @@
             color: #f59e0b;
         }
 
+        .model-badge.modify-badge {
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            color: #a855f7;
+        }
+
         /* === RESPONSIVE === */
         @media (max-width: 820px) {
             body { padding: 14px; }
@@ -797,6 +829,10 @@
             .messages { height: calc(100vh - 390px); }
             .chat { min-height: calc(100vh - 100px); }
             .hero { padding: 20px; }
+        }
+
+        @media (max-width: 1100px) and (min-width: 821px) {
+            .model-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
     </style>
 </head>
@@ -824,38 +860,54 @@
                     <div class="model-icon">🧠</div>
                     <div class="model-title">
                         <span>ANS Flask</span>
-                        <span class="model-tag">Razonamiento + Busqueda</span>
+                        <span class="model-tag">Educativo</span>
                     </div>
                     <div class="model-desc">
-                        Piensa paso a paso, resuelve problemas complejos y busca en la red cuando lo necesita.
+                        Explicaciones detalladas paso a paso con enfoque educativo.
                     </div>
                     <ul class="model-features">
-                        <li>Matematicas y ecuaciones con pasos</li>
-                        <li>Conceptos de programacion y tech</li>
-                        <li>Busqueda automatica en Wikipedia</li>
-                        <li>Memoria persistente y aprendizaje</li>
-                        <li>Analisis de texto avanzado</li>
+                        <li>Explicaciones detalladas</li>
+                        <li>Pasos educativos claros</li>
+                        <li>Analogias y contexto</li>
+                        <li>Preguntas de seguimiento</li>
                     </ul>
-                    <div class="model-note"><strong>Recomendado</strong> para respuestas completas y explicadas.</div>
+                    <div class="model-note"><strong>Solo creador</strong></div>
                 </button>
 
                 <button class="model-card" data-model="gapi" onclick="seleccionarModelo('gapi')">
                     <div class="model-icon">⚡</div>
                     <div class="model-title">
                         <span>ANS Gapi</span>
-                        <span class="model-tag">Rapido + Busqueda</span>
+                        <span class="model-tag">Tecnico</span>
                     </div>
                     <div class="model-desc">
-                        Respuestas directas y rapidas, con busqueda web integrada para consultas instantaneas.
+                        Respuestas tecnicas directas con ejemplos de codigo.
                     </div>
                     <ul class="model-features">
-                        <li>Respuestas cortas y al grano</li>
-                        <li>Base de conocimiento local</li>
-                        <li>Busqueda web en tiempo real</li>
-                        <li>Aprendizaje rapido con comandos</li>
-                        <li>Ideal para consultas simples</li>
+                        <li>Solo codigo y tecnicismos</li>
+                        <li>Sin rodeos ni relleno</li>
+                        <li>Ejemplos practicos</li>
+                        <li>Respuestas cortas</li>
                     </ul>
-                    <div class="model-note"><strong>Ideal</strong> para ir directo al punto.</div>
+                    <div class="model-note"><strong>Solo creador</strong></div>
+                </button>
+
+                <button class="model-card" data-model="modify" onclick="seleccionarModelo('modify')">
+                    <div class="model-icon">🔄</div>
+                    <div class="model-title">
+                        <span>Modify Code</span>
+                        <span class="model-tag">Aprendizaje</span>
+                    </div>
+                    <div class="model-desc">
+                        Aprende de cada conversacion y evoluciona con el uso.
+                    </div>
+                    <ul class="model-features">
+                        <li>Aprende de cada mensaje</li>
+                        <li>Memoria colectiva</li>
+                        <li>Evoluciona con uso</li>
+                        <li>Recuerda todo</li>
+                    </ul>
+                    <div class="model-note"><strong>Disponible para todos</strong></div>
                 </button>
             </div>
 
@@ -866,6 +918,7 @@
                 <div class="cap-pill"><span class="cap-icon">📅</span> Fecha y hora</div>
                 <div class="cap-pill"><span class="cap-icon">🧠</span> Memoria persistente</div>
                 <div class="cap-pill"><span class="cap-icon">😂</span> Chistes tech</div>
+                <div class="cap-pill"><span class="cap-icon">📚</span> Aprendizaje automatico</div>
             </div>
 
             <div class="action-row">
@@ -890,6 +943,7 @@
                         {% endif %}
                         {{ user.name or 'Usuario' }}
                     </span>
+                    <a href="/admin" class="small-btn" style="text-decoration:none;">Admin</a>
                     <button class="small-btn" onclick="volverASeleccion()">Cambiar modelo</button>
                     <button class="small-btn danger" onclick="reiniciarMemoria()">Limpiar chat</button>
                     <a href="/logout" class="small-btn danger" style="text-decoration:none;">Salir</a>
@@ -948,7 +1002,7 @@
                 headerClass: 'flask-mode',
                 badgeClass: 'flask-badge',
                 toastColor: '#57a6ff',
-                intro: 'Modo razonamiento activo con busqueda web. Puedo resolver matematicas, explicar conceptos, buscar informacion en Wikipedia y aprender cosas nuevas. Escribe **ayuda** para ver todo lo que puedo hacer.',
+                intro: 'Modo educativo activo. Te explico conceptos paso a paso con detalle. Preguntame lo que quieras y profundizare en cada tema.',
             },
             gapi: {
                 label: 'ANS Gapi',
@@ -958,8 +1012,18 @@
                 headerClass: 'gapi-mode',
                 badgeClass: 'gapi-badge',
                 toastColor: '#f59e0b',
-                intro: 'Modo rapido activo con busqueda web. Busco respuestas directas en mi base y en la red. Preguntame lo que necesites.',
-            }
+                intro: 'Modo tecnico. Respuestas directas y al grano. Preguntame y te respondere sin rodeos.',
+            },
+            modify: {
+                label: 'Modify Code',
+                icon: '🔄',
+                badge: '🔄 MODIFY',
+                avatarClass: 'modify-avatar',
+                headerClass: 'modify-mode',
+                badgeClass: 'modify-badge',
+                toastColor: '#a855f7',
+                intro: 'Modo aprendizaje activo. Cada mensaje que envies lo recordare para siempre. Entre mas me hables, mas inteligente me vuelvo.',
+            },
         };
 
         let modeloActivo = localStorage.getItem('ans_modelo_activo') || 'flask';

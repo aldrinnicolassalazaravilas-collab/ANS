@@ -47,6 +47,8 @@ GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:5000/auth/google/callback")
 
+OWNER_EMAIL = "aldrinnicolassalazaravilas@gmail.com"
+
 KV_REST_API_URL = os.environ.get("KV_REST_API_URL", "")
 KV_REST_API_TOKEN = os.environ.get("KV_REST_API_TOKEN", "")
 
@@ -180,14 +182,35 @@ def login_required(f):
     return decorated
 
 
+def owner_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = session.get("user", {})
+        if user.get("email") != OWNER_EMAIL:
+            return redirect(url_for("hm"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def is_owner():
+    return session.get("user", {}).get("email") == OWNER_EMAIL
+
+
 MODEL_INFO = {
     "flask": {
         "name": "ANS Flask",
-        "description": "Razonamiento local, memoria, ecuaciones y respuestas paso a paso.",
+        "description": "Razonamiento profundo con respuestas educativas detalladas paso a paso.",
+        "features": ["Explicaciones detalladas", "Pasos educativos", "Analogias y contexto", "Preguntas de seguimiento"],
     },
     "gapi": {
         "name": "ANS Gapi",
-        "description": "Modo mas directo, ideal para consultas rapidas y base general.",
+        "description": "Respuestas tecnicas directas con ejemplos de codigo y al grano.",
+        "features": ["Solo codigo y tecnicismos", "Sin rodeos", "Ejemplos practicos", "Respuestas cortas"],
+    },
+    "modify": {
+        "name": "Modify Code",
+        "description": "Modo aprendizaje: absorbe conocimiento de cada conversacion y evoluciona.",
+        "features": ["Aprende de cada mensaje", "Memoria colectiva", "Evoluciona con uso", "Recuerda todo"],
     },
 }
 
@@ -1258,6 +1281,93 @@ def api_search():
         return jsonify({"error": str(e), "found": False}), 500
 
 
+@app.route("/admin")
+@login_required
+@owner_required
+def admin():
+    users = load_users()
+    memory = load_memory()
+    learned = memory.get("learned", {})
+    user_list = list(users.get("users", {}).values())
+    concept_count = len(KNOWLEDGE_BASE)
+    memory_count = len(learned)
+    history_files = []
+    if HISTORY_DIR.exists():
+        for f in sorted(HISTORY_DIR.iterdir(), reverse=True)[:20]:
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                history_files.append({"name": f.name, "size": len(data), "updated": datetime.fromtimestamp(f.stat().st_mtime).isoformat()})
+            except Exception:
+                history_files.append({"name": f.name, "size": 0, "updated": ""})
+    return render_template("admin.html", users=user_list, concepts=concept_count, memory=memory_count, history_files=history_files, memory_items=list(learned.items())[:50])
+
+
+@app.route("/admin/clear-memory", methods=["POST"])
+@login_required
+@owner_required
+def clear_memory():
+    save_memory({"learned": {}})
+    return jsonify({"ok": True})
+
+
+@app.route("/admin/delete-history", methods=["POST"])
+@login_required
+@owner_required
+def delete_history():
+    data = request.get_json(silent=True) or {}
+    filename = data.get("filename", "")
+    if filename and HISTORY_DIR.exists():
+        path = HISTORY_DIR / filename
+        if path.exists():
+            path.unlink()
+    return jsonify({"ok": True})
+
+
+@app.route("/admin/clear-all-history", methods=["POST"])
+@login_required
+@owner_required
+def clear_all_history():
+    if HISTORY_DIR.exists():
+        for f in HISTORY_DIR.iterdir():
+            f.unlink()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/users", methods=["GET"])
+@login_required
+@owner_required
+def admin_users():
+    users = load_users()
+    return jsonify(users)
+
+
+@app.route("/api/admin/memory", methods=["GET"])
+@login_required
+@owner_required
+def admin_memory():
+    memory = load_memory()
+    return jsonify(memory)
+
+
+@app.route("/api/admin/stats", methods=["GET"])
+@login_required
+@owner_required
+def admin_stats():
+    memory = load_memory()
+    users = load_users()
+    user_count = len(users.get("users", {}))
+    learned_count = len(memory.get("learned", {}))
+    history_count = 0
+    if HISTORY_DIR.exists():
+        history_count = sum(1 for _ in HISTORY_DIR.iterdir())
+    return jsonify({
+        "users": user_count,
+        "learned": learned_count,
+        "concepts": len(KNOWLEDGE_BASE),
+        "history_files": history_count,
+    })
+
+
 @app.route("/api/history", methods=["GET"])
 @login_required
 def get_history():
@@ -1858,63 +1968,81 @@ def generate_smart_response(text, history, memory):
     )
 
 
-def format_reasoned_answer(answer, question):
+def format_reasoned_answer(answer, question, modelo="flask"):
     if answer is None:
         return None
     if "<div class=\"math-box\">" in answer or "<pre>" in answer:
         return answer
 
-    q = normalize_text(question)
-    if "?" in question or q.startswith(("por que", "como", "explica", "analiza")):
-        return f"<strong>Analisis:</strong><br><br>{answer}"
+    if modelo == "flask":
+        return f"🧠 **Analisis Flask:**<br><br>{answer}<br><br><em style='color:#98a8c3;'>Quieres que profundice en algo?</em>"
+    if modelo == "gapi":
+        return answer
+    if modelo == "modify":
+        return f"🔄 **Modify Code:**<br><br>{answer}"
     return answer
 
 
-def respond_with_flask_model(message, history, memory):
+def respond_with_flask_model(message, history, memory, user):
     text = message.strip()
     lower = normalize_text(text)
 
     if not text:
-        return "Escribe una pregunta o un comando para comenzar. Di **ayuda** para ver lo que puedo hacer."
+        return "Escribe una pregunta y te dare una explicacion detallada paso a paso."
 
     intent = detect_intent(text, memory)
     if intent:
-        return intent
+        if "<div class=" in intent:
+            return intent
+        return f"{intent}\n\n💡 *Si quieres profundizar mas, solo pidemelo.*"
 
-    if "quien eres" in lower or "quien eres?" in lower or "ans ai" in lower:
-        return (
-            "Soy **ANS AI**, tu asistente virtual local creado por **Aldrin Nicolas Salazar Avilas**. "
-            "Mi motor de razonamiento esta activo y funciono completamente sin internet para las consultas basicas. "
-            "Puedo resolver matematicas, explicar conceptos, aprender cosas nuevas y mantener memoria persistente. "
-            "Di **ayuda** para ver todo lo que puedo hacer."
-        )
+    if "quien eres" in lower:
+        return "Soy **ANS Flask**, el modo de razonamiento profundo de ANS AI. Mi proposito es explicarte conceptos de forma educativa, con pasos claros y ejemplos. Creado por **Aldrin Nicolas Salazar Avilas**."
 
-    if "creador" in lower or "quien te hizo" in lower or "quien te programo" in lower:
-        return "Fui creado por **Aldrin Nicolas Salazar Avilas**, un desarrollador apasionado por la tecnologia y la inteligencia artificial."
+    if "creador" in lower:
+        return "Mi creador es **Aldrin Nicolas Salazar Avilas**. El diseno este modo para que pudieras aprender tecnologia de forma clara y estructurada."
 
     reasoning = reason_about(text, memory)
     if reasoning:
-        return reasoning
+        steps = [
+            "**Paso 1:** Analicemos el concepto",
+            "**Paso 2:** Entendamos como funciona",
+            "**Paso 3:** Veamos un ejemplo practico",
+        ]
+        return f"{' | '.join(steps)}\n\n{reasoning}"
 
-    return generate_smart_response(text, history, memory)
+    known = extract_known_answer(text, memory)
+    if known:
+        return f"Segun mi base de conocimiento:\n\n{known}\n\n*Quieres que busque mas informacion?*"
+
+    web_result = web_search_and_respond(text, memory)
+    if web_result:
+        return f"He buscado en la red para darte una respuesta completa:\n\n{web_result}"
+
+    return (
+        f"No encontre informacion sobre **\"{text}\"** en mi base. "
+        f"Puedo aprenderlo si me ensenas con:\n\n"
+        f"`aprende: {text} = definicion`\n\n"
+        f"O prueba con otro tema de programacion, tecnologia o matematicas."
+    )
 
 
-def respond_with_gapi_model(message, history, memory):
+def respond_with_gapi_model(message, history, memory, user):
     text = message.strip()
     lower = normalize_text(text)
 
     if not text:
-        return "Escribe una pregunta para el modo rapido."
+        return "Escribe algo."
 
     intent = detect_intent(text, memory)
     if intent:
         return intent
 
-    if "quien eres" in lower or "ans ai" in lower:
-        return "Soy **ANS AI** en modo **Gapi**: respuestas directas y rapidas."
+    if "quien eres" in lower:
+        return "Gapi. Modo rapido. Creado por Aldrin Nicolas Salazar Avilas."
 
-    if "hola" == lower or "saludos" == lower:
-        return "Hola! Modo rapido activo. Preguntame lo que necesites."
+    if "hola" == lower:
+        return "Que hay."
 
     reasoning = reason_about(text, memory)
     if reasoning:
@@ -1922,15 +2050,56 @@ def respond_with_gapi_model(message, history, memory):
 
     known = extract_known_answer(text, memory)
     if known:
-        return f"{known}"
+        return known
 
     web_result = web_search_and_respond(text, memory)
     if web_result:
         return web_result
 
+    return f"No tengo info de \"{text}\". Usa: `aprende: {text} = definicion`"
+
+
+def respond_with_modify_model(message, history, memory, user):
+    text = message.strip()
+    lower = normalize_text(text)
+    user_name = user.get("name", "Alguien")
+
+    if not text:
+        return "Di algo y lo aprendere!"
+
+    if lower.startswith("aprende:"):
+        result = learn_fact(text, memory)
+        return f"{result}\n\n📝 *Anotado gracias a {user_name}!*"
+
+    intent = detect_intent(text, memory)
+    if intent:
+        memory.setdefault("learned", {})[f"pregunta_{normalize_text(text)[:30]}"] = intent
+        save_memory(memory)
+        return intent
+
+    if "quien eres" in lower:
+        return (
+            "Soy **Modify Code**, un modelo que aprende de cada conversacion. "
+            "Todo lo que me dices lo guardo para mejorar. "
+            "Cuantos mas me hables, mas inteligente me vuelvo."
+        )
+
+    known = extract_known_answer(text, memory)
+    if known:
+        return known
+
+    web_result = web_search_and_respond(text, memory)
+    if web_result:
+        memory.setdefault("learned", {})[f"web_{normalize_text(text)[:30]}"] = web_result[:200]
+        save_memory(memory)
+        return f"{web_result}\n\n🌍 *Informacion guardada en mi memoria.*"
+
+    memory.setdefault("learned", {})[f"nuevo_{normalize_text(text)[:30]}_{random.randint(100,999)}"] = f"Preguntado por {user_name}: {text}"
+    save_memory(memory)
     return (
-        f"No encontre info sobre **\"{text}\"** en mi base ni en la red. "
-        f"Puedes ensenarmelo con: `aprende: {text} = definicion`"
+        f"**\"{text}\"** — No se que es aun, pero ya lo recorde!\n\n"
+        f"Gracias a **{user_name}**, si alguien mas pregunta sobre esto, podre responder.\n\n"
+        f"📚 *Datos guardados en mi memoria colectiva.*"
     )
 
 
@@ -1942,15 +2111,22 @@ def ai_chat():
         mensaje_nuevo = data.get("mensaje", "")
         modelo = normalize_text(data.get("modelo", "flask"))
         memory = load_memory()
+        user = session.get("user", {})
+
+        if modelo in ("flask", "gapi") and user.get("email") != OWNER_EMAIL:
+            return jsonify({"respuesta": "Modo reservado para el creador. Usa **Modify Code** para interactuar.", "modelo": MODEL_INFO[modelo]["name"]})
 
         if modelo == "gapi":
-            respuesta = respond_with_gapi_model(mensaje_nuevo, historial, memory)
+            respuesta = respond_with_gapi_model(mensaje_nuevo, historial, memory, user)
             modelo_nombre = MODEL_INFO["gapi"]["name"]
+        elif modelo == "modify":
+            respuesta = respond_with_modify_model(mensaje_nuevo, historial, memory, user)
+            modelo_nombre = MODEL_INFO["modify"]["name"]
         else:
-            respuesta = respond_with_flask_model(mensaje_nuevo, historial, memory)
+            respuesta = respond_with_flask_model(mensaje_nuevo, historial, memory, user)
             modelo_nombre = MODEL_INFO["flask"]["name"]
 
-        respuesta = format_reasoned_answer(respuesta, mensaje_nuevo)
+        respuesta = format_reasoned_answer(respuesta, mensaje_nuevo, modelo)
         return jsonify({"respuesta": respuesta, "modelo": modelo_nombre})
 
     except Exception as e:
