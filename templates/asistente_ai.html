@@ -1,352 +1,451 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Programa de aprendizaje de informática</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
-
-<style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:"Poppins",sans-serif;
-}
-
-body{
-    background:#eef2f7;
-    padding:30px;
-}
-
-header{
-    background:linear-gradient(135deg,#0055ff,#00b7ff);
-    color:white;
-    text-align:center;
-    padding:60px;
-    border-radius:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,.2);
-    margin-bottom:25px;
-}
-
-header h1{
-    font-size:40px;
-}
-
-header p{
-    margin-top:10px;
-    opacity:.9;
-}
-
-section{
-    background:white;
-    margin:20px auto;
-    padding:30px;
-    max-width:900px;
-    border-radius:20px;
-    box-shadow:0 8px 20px rgba(0,0,0,.08);
-}
-
-section h1{
-    color:#0055ff;
-    margin-bottom:15px;
-}
-
-button{
-    background:linear-gradient(135deg,#00c6ff,#0072ff);
-    color:white;
-    border:none;
-    padding:15px 25px;
-    border-radius:12px;
-    cursor:pointer;
-    font-size:16px;
-    margin:10px;
-    transition:.3s;
-}
-
-button:hover{
-    transform:translateY(-3px);
-    box-shadow:0 8px 20px rgba(0,114,255,.4);
-}
-
-button:active{
-    transform:scale(.97);
-}
-
-</style>
-
-</head>
-
-<body>
-
-<header>
-    <h1>💻 Programa de aprendizaje de informática</h1>
-    <p>Aprende informática jugando</p>
-</header>
-
-<section>
-    <h1>🎯 Propósito</h1>
-    <p>El propósito de esta web es que niños y adolescentes puedan aprender lo básico de la informática mediante juegos interactivos.</p>
-</section>
-
-<section>
-    <h1>🎮 Juegos disponibles</h1>
-
-    <button onclick="window.location.href='/Partes del computador'">
-        Buscar las partes del computador
-    </button>
-
-    <button onclick="window.location.href='/robot_controler'">
-        Controla el robot
-    </button>
-
-</section>
-
-<section>
-    <h1>📚 Guías</h1>
-    <button onclick="window.location.href='/Guia_partes_del_computador'">
-        Guía de las partes del computador
-    </button>
-</section>
-
-</body>
-</html>
-
-
- <div id="ai-button-container">
-    <button id="abrir-ai-btn" onclick="toggleAI()">
-        <span class="ai-icon">🧠</span> ANS AI
+<!-- BOTON FLOTANTE -->
+<div id="ai-fab">
+    <button id="fab-btn" onclick="toggleAI()">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.2 6 .3.8.7 1.8 1.2 3 .2.5 0 1.1-.5 1.3-.5.2-1 0-1.5-.5-1.2-1.2-2.3-2-3-2.3-.4 0-.8.1-1.2.3A7 7 0 0 1 5 9a7 7 0 0 1 7-7z"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/></svg>
+        <span class="fab-label">ANS AI</span>
+        <span class="fab-pulse"></span>
     </button>
 </div>
 
-<div id="ai-chat-window" style="display: none;">
-    <div id="ai-header">
-        <div class="header-info">
-            <span class="status-dot"></span>
-            <span>ANS AI v1.0.0</span>
+<!-- VENTANA DEL CHAT -->
+<div id="ai-widget" class="ai-hidden">
+    <div id="ai-widget-header">
+        <div class="wh-left">
+            <div class="ai-avatar">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.2 6 .3.8.7 1.8 1.2 3 .2.5 0 1.1-.5 1.3-.5.2-1 0-1.5-.5-1.2-1.2-2.3-2-3-2.3-.4 0-.8.1-1.2.3A7 7 0 0 1 5 9a7 7 0 0 1 7-7z"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/></svg>
+            </div>
+            <div class="wh-text">
+                <span class="wh-name">ANS AI</span>
+                <span class="wh-status"><span class="status-dot"></span> En linea</span>
+            </div>
         </div>
-        <button id="cerrar-ai-btn" onclick="toggleAI()">✖</button>
-    </div>
-    
-    <div id="ai-messages" class="messages-container">
-        <div class="message ai">
-            Saludos, soy <strong>ANS AI</strong>. Mi módulo lógico está activo. Puedes saludarme, pedirme una suma matemática (ej: 50 + 20), pedirme código básico, o usar el signo "<strong>?</strong>" para un análisis profundo.
+        <div class="wh-actions">
+            <button class="wh-btn" onclick="limpiarChat()" title="Limpiar chat">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+            <button class="wh-btn wh-close" onclick="toggleAI()" title="Cerrar">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
         </div>
     </div>
-    
-    <div id="ai-input-area" class="input-area">
-        <input type="text" id="ai-input" placeholder="Escribe tu consulta aquí..." onkeypress="manejarEnter(event)" autocomplete="off">
-        <button id="enviar-ai-btn" onclick="procesarEntrada()">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+
+    <div id="ai-messages">
+        <div class="msg msg-ai">
+            <div class="msg-avatar">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.2 6 .3.8.7 1.8 1.2 3 .2.5 0 1.1-.5 1.3-.5.2-1 0-1.5-.5-1.2-1.2-2.3-2-3-2.3-.4 0-.8.1-1.2.3A7 7 0 0 1 5 9a7 7 0 0 1 7-7z"/></svg>
+            </div>
+            <div class="msg-content">
+                <p>Hola! Soy <strong>ANS AI</strong>, tu asistente local. Puedo:</p>
+                <ul>
+                    <li>Responder preguntas sobre tecnologia y programacion</li>
+                    <li>Resolver operaciones matematicas y ecuaciones</li>
+                    <li>Aprender nuevos conceptos</li>
+                    <li>Decirte la fecha y hora</li>
+                </ul>
+                <p>Escribe <strong>ayuda</strong> para ver todo lo que puedo hacer.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="ai-suggestions">
+        <button class="sug-btn" onclick="enviarSugerencia('que puedes hacer')">Que puedes hacer</button>
+        <button class="sug-btn" onclick="enviarSugerencia('25 + 17')">25 + 17</button>
+        <button class="sug-btn" onclick="enviarSugerencia('que es python')">Que es Python</button>
+        <button class="sug-btn" onclick="enviarSugerencia('dime un chiste')">Chiste</button>
+    </div>
+
+    <div id="ai-input-area">
+        <input type="text" id="ai-input" placeholder="Escribe tu mensaje..." onkeypress="manejarEnter(event)" autocomplete="off">
+        <button id="send-btn" onclick="procesarEntrada()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
     </div>
 </div>
 
 <style>
-    /* Botón Flotante */
-    #ai-button-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; font-family: 'Segoe UI', sans-serif; }
-    #abrir-ai-btn { background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); color: white; border: 2px solid #00f2fe; border-radius: 30px; padding: 12px 25px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 8px 20px rgba(0, 242, 254, 0.3); transition: all 0.3s ease; display: flex; align-items: center; gap: 10px; }
-    #abrir-ai-btn:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0, 242, 254, 0.5); border-color: #4facfe; }
+/* === BOTON FLOTANTE === */
+#ai-fab{position:fixed;bottom:28px;right:28px;z-index:99999;}
+#fab-btn{
+    display:flex;align-items:center;gap:10px;
+    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:#e8eef8;border:1.5px solid rgba(87,166,255,.5);
+    border-radius:50px;padding:14px 22px;
+    font-size:14px;font-weight:600;cursor:pointer;
+    box-shadow:0 8px 32px rgba(87,166,255,.25),0 2px 8px rgba(0,0,0,.3);
+    transition:all .3s cubic-bezier(.4,0,.2,1);
+    position:relative;overflow:hidden;
+}
+#fab-btn::before{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(87,166,255,.1),transparent);
+    opacity:0;transition:opacity .3s;
+}
+#fab-btn:hover{
+    transform:translateY(-4px) scale(1.02);
+    box-shadow:0 12px 40px rgba(87,166,255,.4),0 4px 12px rgba(0,0,0,.3);
+    border-color:rgba(87,166,255,.8);
+}
+#fab-btn:hover::before{opacity:1;}
+#fab-btn:active{transform:scale(.97);}
+.fab-label{letter-spacing:.3px;}
+.fab-pulse{
+    width:8px;height:8px;border-radius:50%;
+    background:#34d399;flex-shrink:0;
+    animation:pulse-glow 2s infinite;
+}
+@keyframes pulse-glow{
+    0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.6);}
+    50%{box-shadow:0 0 0 6px rgba(52,211,153,0);}
+}
 
-    /* Ventana del Widget */
-    #ai-chat-window { position: fixed; bottom: 90px; right: 25px; width: 380px; height: 550px; background: #0d1117; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 1px solid #30363d; display: flex; flex-direction: column; z-index: 10000; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-    
-    /* Cabecera */
-    #ai-header { background: #161b22; color: #58a6ff; padding: 15px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; }
-    .header-info { display: flex; align-items: center; gap: 10px; }
-    .status-dot { width: 10px; height: 10px; background-color: #238636; border-radius: 50%; box-shadow: 0 0 10px #238636; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(35, 134, 54, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(35, 134, 54, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); } }
-    #cerrar-ai-btn { background: none; border: none; color: #8b949e; cursor: pointer; font-size: 16px; transition: color 0.3s; }
-    #cerrar-ai-btn:hover { color: #ff4757; }
+/* === WIDGET CHAT === */
+#ai-widget{
+    position:fixed;bottom:100px;right:28px;
+    width:400px;height:600px;
+    background:linear-gradient(180deg,#080c15 0%,#0d1320 100%);
+    border-radius:20px;
+    border:1px solid rgba(120,145,180,.12);
+    box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 0 1px rgba(87,166,255,.08);
+    display:flex;flex-direction:column;
+    z-index:100000;overflow:hidden;
+    transition:all .35s cubic-bezier(.4,0,.2,1);
+    opacity:1;transform:scale(1) translateY(0);
+}
+#ai-widget.ai-hidden{
+    opacity:0;transform:scale(.92) translateY(16px);
+    pointer-events:none;
+}
 
-    /* Área de Mensajes */
-    .messages-container { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-    .messages-container::-webkit-scrollbar { width: 6px; }
-    .messages-container::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
-    
-    .message { max-width: 85%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 14px; word-wrap: break-word; }
-    .message.ai { align-self: flex-start; background-color: #21262d; border: 1px solid #30363d; color: #c9d1d9; border-bottom-left-radius: 2px; }
-    .message.user { align-self: flex-end; background-color: #1f6feb; color: #ffffff; border-bottom-right-radius: 2px; }
-    
-    /* Código Generado */
-    pre { background-color: #010409; padding: 10px; border-radius: 6px; border: 1px solid #30363d; overflow-x: auto; color: #58a6ff; font-family: monospace; font-size: 13px; }
+/* Header */
+#ai-widget-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px;
+    background:linear-gradient(180deg,rgba(15,22,36,.95),rgba(12,18,30,.95));
+    border-bottom:1px solid rgba(120,145,180,.1);
+    backdrop-filter:blur(10px);flex-shrink:0;
+}
+.wh-left{display:flex;align-items:center;gap:12px;}
+.ai-avatar{
+    width:38px;height:38px;border-radius:12px;
+    background:linear-gradient(135deg,rgba(87,166,255,.15),rgba(52,211,153,.1));
+    border:1px solid rgba(87,166,255,.2);
+    display:grid;place-items:center;color:#57a6ff;
+}
+.wh-text{display:flex;flex-direction:column;gap:2px;}
+.wh-name{font-size:15px;font-weight:700;color:#e8eef8;letter-spacing:.3px;}
+.wh-status{font-size:11px;color:#98a8c3;display:flex;align-items:center;gap:5px;}
+.status-dot{
+    width:7px;height:7px;border-radius:50%;background:#34d399;
+    box-shadow:0 0 8px rgba(52,211,153,.6);
+    animation:pulse-glow 2s infinite;
+}
+.wh-actions{display:flex;gap:6px;}
+.wh-btn{
+    width:32px;height:32px;border-radius:10px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+    color:#98a8c3;cursor:pointer;
+    display:grid;place-items:center;
+    transition:all .2s;
+}
+.wh-btn:hover{background:rgba(255,255,255,.08);color:#e8eef8;}
+.wh-close:hover{background:rgba(255,107,107,.15);color:#ff6b6b;border-color:rgba(255,107,107,.3);}
 
-    /* Indicador de Pensamiento */
-    .pensando-indicator { align-self: flex-start; color: #8b949e; font-style: italic; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-    .loader-dots::after { content: ''; animation: dots 1.5s infinite steps(4, end); }
-    @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+/* Messages */
+#ai-messages{
+    flex:1;overflow-y:auto;padding:18px;
+    display:flex;flex-direction:column;gap:14px;
+    scroll-behavior:smooth;
+}
+#ai-messages::-webkit-scrollbar{width:5px;}
+#ai-messages::-webkit-scrollbar-track{background:transparent;}
+#ai-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:99px;}
 
-    /* Área de Input */
-    .input-area { display: flex; padding: 15px; background: #161b22; border-top: 1px solid #30363d; align-items: center; }
-    #ai-input { flex-grow: 1; padding: 12px 15px; background: #0d1117; border: 1px solid #30363d; border-radius: 20px; color: #c9d1d9; outline: none; font-size: 14px; transition: border-color 0.3s; }
-    #ai-input:focus { border-color: #58a6ff; }
-    #enviar-ai-btn { background: #238636; border: none; width: 42px; height: 42px; margin-left: 10px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
-    #enviar-ai-btn:hover { background: #2ea043; transform: scale(1.05); }
+.msg{display:flex;gap:10px;max-width:92%;animation:msg-in .3s cubic-bezier(.4,0,.2,1);}
+.msg-ai{align-self:flex-start;}
+.msg-user{align-self:flex-end;flex-direction:row-reverse;}
+
+.msg-avatar{
+    width:28px;height:28px;border-radius:8px;flex-shrink:0;
+    display:grid;place-items:center;margin-top:2px;
+}
+.msg-ai .msg-avatar{
+    background:linear-gradient(135deg,rgba(87,166,255,.12),rgba(52,211,153,.08));
+    border:1px solid rgba(87,166,255,.15);color:#57a6ff;
+}
+
+.msg-content{
+    padding:12px 16px;border-radius:14px;
+    font-size:13.5px;line-height:1.65;
+    word-wrap:break-word;
+}
+.msg-ai .msg-content{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.06);
+    color:#c9d1d9;border-bottom-left-radius:4px;
+}
+.msg-user .msg-content{
+    background:linear-gradient(135deg,#1f6feb,#2563eb);
+    color:#fff;border-bottom-right-radius:4px;
+}
+
+.msg-content p{margin-bottom:8px;}
+.msg-content p:last-child{margin-bottom:0;}
+.msg-content strong{color:#57a6ff;font-weight:600;}
+.msg-user .msg-content strong{color:#fff;}
+.msg-content code{
+    padding:2px 7px;border-radius:6px;
+    background:rgba(255,255,255,.08);color:#7cdbff;
+    font-family:'Fira Code',monospace;font-size:12.5px;
+}
+.msg-user .msg-content code{background:rgba(255,255,255,.18);color:#fff;}
+.msg-content ul{padding-left:18px;margin:6px 0;}
+.msg-content li{margin:3px 0;color:#98a8c3;}
+.msg-content pre{
+    background:rgba(0,0,0,.35);padding:12px;border-radius:10px;
+    border:1px solid rgba(255,255,255,.06);
+    overflow-x:auto;margin:8px 0;color:#7cdbff;
+    font-family:'Fira Code',monospace;font-size:12.5px;
+}
+
+/* Math Box */
+.math-box{
+    background:linear-gradient(135deg,rgba(87,166,255,.06),rgba(52,211,153,.04));
+    border:1px solid rgba(87,166,255,.15);border-radius:12px;
+    padding:14px;margin:8px 0;
+}
+.math-box strong{color:#57a6ff;}
+.math-box code{
+    background:rgba(0,0,0,.25);padding:2px 6px;border-radius:5px;
+}
+
+/* Thinking */
+.thinking{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 16px;color:#98a8c3;font-size:13px;
+    font-style:italic;animation:msg-in .3s;
+}
+.thinking-dots{display:flex;gap:4px;}
+.thinking-dots span{
+    width:6px;height:6px;border-radius:50%;
+    background:#57a6ff;
+    animation:dot-bounce .8s infinite;
+}
+.thinking-dots span:nth-child(2){animation-delay:.15s;}
+.thinking-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes dot-bounce{
+    0%,80%,100%{transform:translateY(0);opacity:.4;}
+    40%{transform:translateY(-6px);opacity:1;}
+}
+@keyframes msg-in{
+    from{opacity:0;transform:translateY(8px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+/* Suggestions */
+#ai-suggestions{
+    display:flex;gap:8px;padding:0 18px 12px;
+    overflow-x:auto;flex-shrink:0;
+}
+#ai-suggestions::-webkit-scrollbar{display:none;}
+.sug-btn{
+    padding:8px 14px;border-radius:10px;white-space:nowrap;
+    font-size:12px;font-weight:500;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+    color:#98a8c3;cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+.sug-btn:hover{
+    background:rgba(87,166,255,.1);border-color:rgba(87,166,255,.3);
+    color:#57a6ff;
+}
+
+/* Input */
+#ai-input-area{
+    display:flex;gap:10px;padding:14px 18px;
+    background:rgba(255,255,255,.02);
+    border-top:1px solid rgba(120,145,180,.08);
+    align-items:center;flex-shrink:0;
+}
+#ai-input{
+    flex:1;padding:13px 18px;
+    background:rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:14px;color:#e8eef8;
+    font-size:14px;outline:none;
+    transition:border-color .3s,box-shadow .3s;
+}
+#ai-input::placeholder{color:rgba(152,168,195,.5);}
+#ai-input:focus{
+    border-color:rgba(87,166,255,.5);
+    box-shadow:0 0 0 3px rgba(87,166,255,.08);
+}
+#send-btn{
+    width:44px;height:44px;border-radius:14px;border:none;flex-shrink:0;
+    background:linear-gradient(135deg,#34d399,#22c55e);
+    box-shadow:0 4px 16px rgba(34,197,94,.25);
+    cursor:pointer;display:grid;place-items:center;
+    transition:all .2s;
+}
+#send-btn:hover{transform:scale(1.05);box-shadow:0 6px 24px rgba(34,197,94,.35);}
+#send-btn:active{transform:scale(.95);}
+#send-btn svg{margin-left:1px;}
+
+/* Responsive */
+@media(max-width:500px){
+    #ai-widget{
+        width:calc(100vw - 16px);height:calc(100vh - 100px);
+        right:8px;bottom:88px;border-radius:16px;
+    }
+    #ai-fab{bottom:16px;right:16px;}
+}
 </style>
 
 <script>
-    // ---------------------------------------------------------
-    // MEMORIA BASE Y LOCALSTORAGE
-    // ---------------------------------------------------------
-    let conocimientoAdquirido = JSON.parse(localStorage.getItem('ansMemoria_widget')) || {};
+const messagesContainer = document.getElementById('ai-messages');
+const inputField = document.getElementById('ai-input');
+const widget = document.getElementById('ai-widget');
+const suggestionsEl = document.getElementById('ai-suggestions');
 
-    const conocimientoBase = {
-        "html": "HTML es el 'esqueleto' de tu página web. Define la estructura.",
-        "css": "CSS es el lenguaje que controla el diseño y los colores.",
-        "javascript": "JavaScript es el 'sistema nervioso' de la web. Permite interactividad.",
-        "java": "Java es un lenguaje distinto a JavaScript, requiere el JDK para compilar.",
-        "flask": "Flask es tu servidor backend escrito en Python."
-    };
+let historialConversacion = JSON.parse(localStorage.getItem('ans_widget_history')) || [];
 
-    const messagesContainer = document.getElementById('ai-messages');
-    const inputField = document.getElementById('ai-input');
+function toggleAI() {
+    widget.classList.toggle('ai-hidden');
+    if (!widget.classList.contains('ai-hidden')) {
+        inputField.focus();
+        renderizarHistorial();
+    }
+}
 
-    // ---------------------------------------------------------
-    // CONTROL DE INTERFAZ
-    // ---------------------------------------------------------
-    function toggleAI() {
-        const chat = document.getElementById('ai-chat-window');
-        chat.style.display = (chat.style.display === 'none' || chat.style.display === '') ? 'flex' : 'none';
-        if (chat.style.display === 'flex') inputField.focus();
+function scrollAlFinal() {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function manejarEnter(e) {
+    if (e.key === 'Enter') procesarEntrada();
+}
+
+function enviarSugerencia(text) {
+    inputField.value = text;
+    procesarEntrada();
+}
+
+function limpiarChat() {
+    historialConversacion = [];
+    localStorage.removeItem('ans_widget_history');
+    messagesContainer.innerHTML = '';
+    agregarMsgAI('Historial limpiado. Estoy listo para una nueva conversacion.');
+    suggestionsEl.style.display = 'flex';
+}
+
+function escaparHTML(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatearMD(t) {
+    t = t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
+    t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+    t = t.replace(/^### (.*$)/gm, '<h4 style="color:#57a6ff;margin:8px 0 4px;">$1</h4>');
+    t = t.replace(/^## (.*$)/gm, '<h3 style="color:#57a6ff;margin:8px 0 4px;">$1</h3>');
+    t = t.replace(/^- (.*$)/gm, '<li>$1</li>');
+    t = t.replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>');
+    t = t.replace(/\n/g, '<br>');
+    return t;
+}
+
+function agregarMsg(rol, texto) {
+    const div = document.createElement('div');
+    div.className = `msg msg-${rol === 'user' ? 'user' : 'ai'}`;
+
+    let avatarHTML = '';
+    if (rol !== 'user') {
+        avatarHTML = `<div class="msg-avatar"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.2 6 .3.8.7 1.8 1.2 3 .2.5 0 1.1-.5 1.3-.5.2-1 0-1.5-.5-1.2-1.2-2.3-2-3-2.3-.4 0-.8.1-1.2.3A7 7 0 0 1 5 9a7 7 0 0 1 7-7z"/></svg></div>`;
     }
 
-    function scrollAlFinal() {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const content = document.createElement('div');
+    content.className = 'msg-content';
+    content.innerHTML = rol === 'user' ? `<p>${escaparHTML(texto)}</p>` : `<p>${formatearMD(texto)}</p>`;
+
+    div.innerHTML = avatarHTML;
+    div.appendChild(content);
+    messagesContainer.appendChild(div);
+    scrollAlFinal();
+}
+
+function agregarMsgAI(texto) {
+    agregarMsg('ai', texto);
+}
+
+function agregarThinking() {
+    const div = document.createElement('div');
+    div.className = 'thinking';
+    div.id = 'thinking-' + Date.now();
+    div.innerHTML = `
+        <div class="thinking-dots"><span></span><span></span><span></span></div>
+        <span>Pensando...</span>
+    `;
+    messagesContainer.appendChild(div);
+    scrollAlFinal();
+    return div.id;
+}
+
+function renderizarHistorial() {
+    messagesContainer.innerHTML = '';
+    if (historialConversacion.length === 0) return;
+    historialConversacion.forEach(msg => {
+        agregarMsg(msg.rol, msg.texto);
+    });
+    scrollAlFinal();
+}
+
+async function procesarEntrada() {
+    const texto = inputField.value.trim();
+    if (!texto) return;
+
+    inputField.value = '';
+    agregarMsg('user', texto);
+    suggestionsEl.style.display = 'none';
+
+    const thinkingId = agregarThinking();
+
+    try {
+        const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mensaje: texto,
+                historial: historialConversacion,
+                modelo: 'flask'
+            })
+        });
+
+        const data = await resp.json();
+        const respuesta = data.respuesta || 'No recibi respuesta del servidor.';
+
+        const el = document.getElementById(thinkingId);
+        if (el) el.remove();
+
+        agregarMsgAI(respuesta);
+
+        historialConversacion.push({ rol: 'user', texto: texto });
+        historialConversacion.push({ rol: 'ai', texto: respuesta });
+
+        if (historialConversacion.length > 50) {
+            historialConversacion = historialConversacion.slice(-50);
+        }
+
+        localStorage.setItem('ans_widget_history', JSON.stringify(historialConversacion));
+
+    } catch (err) {
+        const el = document.getElementById(thinkingId);
+        if (el) el.remove();
+        agregarMsgAI('Error de conexion. Verifica que el servidor Flask este activo.');
     }
 
-    function manejarEnter(event) {
-        if (event.key === 'Enter') procesarEntrada();
-    }
+    inputField.focus();
+}
 
-    // ---------------------------------------------------------
-    // MÓDULO LÓGICO, MATEMÁTICO Y CONVERSACIONAL
-    // ---------------------------------------------------------
-    function evaluarLogicaAvanzada(texto) {
-        // A. Evaluación Matemática (Sumas con RegEx)
-        const regexSuma = /(\d+)\s*\+\s*(\d+)/;
-        const matchSuma = texto.match(regexSuma);
-        if (matchSuma) {
-            const num1 = parseInt(matchSuma[1]);
-            const num2 = parseInt(matchSuma[2]);
-            return `El resultado matemático de sumar ${num1} + ${num2} es: <strong>${num1 + num2}</strong>.`;
-        }
-
-        // B. Generador de Código Simple
-        if (texto.includes('codigo') || texto.includes('código')) {
-            if (texto.includes('html')) {
-                return "Aquí tienes un código HTML básico:<br><br><pre>&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&lt;head&gt;\n    &lt;title&gt;Web&lt;/title&gt;\n&lt;/head&gt;\n&lt;body&gt;\n    &lt;h1&gt;¡Hola, Aldrin!&lt;/h1&gt;\n&lt;/body&gt;\n&lt;/html&gt;</pre>";
-            }
-            if (texto.includes('javascript') || texto.includes('js')) {
-                return "Un fragmento simple de JS para una alerta:<br><br><pre>alert('¡ANS AI en acción!');</pre>";
-            }
-            if (texto.includes('python')) {
-                return "Código Python para saludar:<br><br><pre>nombre = 'Aldrin'\nprint(f'¡Hola, {nombre}!')</pre>";
-            }
-        }
-
-        // C. Identidad y Charla
-        if (texto.includes('aldrin') || texto.includes('creador')) {
-            return "Aldrin Nicolas Salazar Avilas es mi creador. Él programó esta increíble interfaz y mi lógica de aprendizaje.";
-        }
-        if (texto.includes('quien eres') || texto.includes('ans ai')) {
-            return "Soy ANS AI, un asistente virtual avanzado creado por Aldrin. Estoy diseñado para procesar lógica, matemáticas y código en tiempo real.";
-        }
-        if (texto === 'hola' || texto === 'saludos') {
-            return "¡Hola! Mis sistemas están operativos. ¿En qué te puedo asistir hoy?";
-        }
-        if (texto.includes('como estas') || texto.includes('que tal')) {
-            return "Como IA no tengo sentimientos, pero todos mis módulos lógicos y de memoria funcionan perfectamente. ¿Y tú, cómo vas con tu proyecto web?";
-        }
-
-        return null;
-    }
-
-    // ---------------------------------------------------------
-    // MOTOR PRINCIPAL DE PROCESAMIENTO
-    // ---------------------------------------------------------
-    async function procesarEntrada() {
-        const rawText = inputField.value.trim();
-        if (!rawText) return;
-        const textLower = rawText.toLowerCase();
-
-        // Imprimir Usuario
-        messagesContainer.innerHTML += `<div class="message user">${rawText}</div>`;
-        inputField.value = '';
-        scrollAlFinal();
-
-        // Estado Pensando
-        const thinkingId = "thinking-" + Date.now();
-        const esPregunta = rawText.includes('?');
-        let loadingText = esPregunta ? "Analizando a profundidad" : "Procesando petición";
-
-        messagesContainer.innerHTML += `
-            <div id="${thinkingId}" class="pensando-indicator">
-                <span class="ai-icon">⚙️</span> <span class="loader-dots">${loadingText}</span>
-            </div>`;
-        scrollAlFinal();
-
-        let respuesta = null;
-
-        // FASE 1: Lógica (Mates, Código, Charla)
-        respuesta = evaluarLogicaAvanzada(textLower);
-
-        // FASE 2: Memoria Local
-        if (!respuesta) respuesta = buscarEnMemoriaLocal(textLower);
-
-        // FASE 3: Búsqueda Web
-        if (!respuesta) respuesta = await buscarY_AprenderDeLaRed(textLower);
-
-        // Renderizado Final
-        const delay = esPregunta ? 2200 : 800;
-        setTimeout(() => {
-            const thinkingElement = document.getElementById(thinkingId);
-            if (thinkingElement) thinkingElement.remove();
-            
-            let respuestaFinal = esPregunta && !respuesta.includes("resultado matemático") ? `<em>Análisis completado:</em><br><br>${respuesta}` : respuesta;
-            messagesContainer.innerHTML += `<div class="message ai">${formatearRespuesta(respuestaFinal)}</div>`;
-            scrollAlFinal();
-        }, delay);
-    }
-
-    function buscarEnMemoriaLocal(consulta) {
-        for (const clave in conocimientoAdquirido) {
-            if (consulta.includes(clave)) return `[Memoria Local]: ${conocimientoAdquirido[clave]}`;
-        }
-        for (const clave in conocimientoBase) {
-            if (consulta.includes(clave)) return conocimientoBase[clave];
-        }
-        return null;
-    }
-
-    async function buscarY_AprenderDeLaRed(consulta) {
-        let terminoBusqueda = limpiarConsulta(consulta);
-        if (!terminoBusqueda) return "Detecto falta de contexto. ¿Podrías ser más específico?";
-
-        try {
-            const url = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(terminoBusqueda)}`;
-            const response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.extract) {
-                    conocimientoAdquirido[terminoBusqueda.toLowerCase()] = data.extract;
-                    localStorage.setItem('ansMemoria_widget', JSON.stringify(conocimientoAdquirido));
-                    return `[Red Global]: ${data.extract}`;
-                }
-            }
-            return `Mis algoritmos no encontraron datos exactos para "${terminoBusqueda}".`;
-        } catch (error) {
-            return "Mis sistemas no pueden conectar con la red externa en este momento.";
-        }
-    }
-
-    function limpiarConsulta(texto) {
-        const ignorar = ['que', 'es', 'un', 'una', 'el', 'la', 'los', 'las', 'de', 'para', 'como', 'funciona', 'significa', '?'];
-        let limpio = texto.replace(/\?/g, '');
-        return limpio.split(' ').filter(p => !ignorar.includes(p) && p.length > 2).join(' ');
-    }
-
-    function formatearRespuesta(texto) {
-        return texto.replace(/\n/g, '<br><br>');
-    }
+renderizarHistorial();
 </script>
+</body>
+</html>
