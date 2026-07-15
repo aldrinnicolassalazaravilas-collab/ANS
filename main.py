@@ -42,10 +42,12 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="None" if IS_PROD else "Lax",
     SESSION_COOKIE_NAME="ans_session",
 )
-MEMORY_FILE = BASE_DIR / "ans_memory.json"
-USER_FILE = BASE_DIR / "ans_users.json"
-HISTORY_DIR = BASE_DIR / "ans_history"
-CHATS_FILE = BASE_DIR / "ans_chats.json"
+_data_dir = Path("/tmp/ans_data") if IS_PROD else BASE_DIR
+_data_dir.mkdir(parents=True, exist_ok=True)
+MEMORY_FILE = _data_dir / "ans_memory.json"
+USER_FILE = _data_dir / "ans_users.json"
+HISTORY_DIR = _data_dir / "ans_history"
+CHATS_FILE = _data_dir / "ans_chats.json"
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
@@ -1690,7 +1692,7 @@ def api_calculate():
         return jsonify({"result": None, "error": str(e)})
 
 
-MESSAGES_FILE = BASE_DIR / "ans_messages.json"
+MESSAGES_FILE = _data_dir / "ans_messages.json"
 
 def load_messages():
     if MESSAGES_FILE.exists():
