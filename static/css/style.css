@@ -236,5 +236,24 @@ body{
     height:700px;
     border:none;
 }
+select{
+    width:260px;
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:#182d70;
+    color:white;
+    font-size:17px;
+    box-shadow:0 5px 15px rgba(0,0,0,.3);
+    transition:.3s;
+}
 
+select:hover{
+    transform:scale(1.03);
+}
+
+select:focus{
+    outline:none;
+    box-shadow:0 0 10px #00bfff;
+}
 

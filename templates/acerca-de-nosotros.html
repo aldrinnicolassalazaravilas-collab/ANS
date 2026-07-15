@@ -1,18 +1,11 @@
-<html>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="../static/css/style.css">
-<script src="../static/js/detalles-recurso.js"></script>
-
+<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proyecto ANS</title>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 <header>
@@ -39,6 +32,25 @@
 
 </section>
 
+<section>
+    <h1>Selecciona un modelo de AI para ver su información</h1>
+
+    <select id="modelo">
+        <option value="" selected disabled>Selecciona un modelo</option>
+
+        <option value="flask">ANS Flask</option>
+        <option value="gapi">ANS Gapi</option>
+        <option value="codigo">Código modificable</option>
+    </select>
+
+    <button onclick="mostrar()">
+        Mostrar información
+    </button>
+
+    <!-- Aquí aparecerá la información -->
+    <section id="info">hello</section>
+
+</section>
 <button onclick="window.location.href='/'">
     regresar a la pagina incial
 </button>

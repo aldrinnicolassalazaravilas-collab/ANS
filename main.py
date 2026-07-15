@@ -7,7 +7,9 @@ import math
 import random
 import urllib.request
 import urllib.parse
-from datetime import datetime
+import uuid
+import html as html_lib
+from datetime import datetime, timedelta
 from pathlib import Path
 from functools import wraps
 
@@ -33,15 +35,17 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 app.secret_key = os.environ.get("SECRET_KEY", "ans-ai-secret-key-change-in-production-2024")
+IS_PROD = "VERCEL_URL" in os.environ or "RENDER_EXTERNAL_URL" in os.environ or os.environ.get("GOOGLE_REDIRECT_URI", "").startswith("https://")
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=IS_PROD,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SAMESITE="None" if IS_PROD else "Lax",
     SESSION_COOKIE_NAME="ans_session",
 )
 MEMORY_FILE = BASE_DIR / "ans_memory.json"
 USER_FILE = BASE_DIR / "ans_users.json"
 HISTORY_DIR = BASE_DIR / "ans_history"
+CHATS_FILE = BASE_DIR / "ans_chats.json"
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
@@ -172,6 +176,76 @@ def save_user_history(user_id, modelo, history):
     except Exception:
         pass
 
+
+def load_chats():
+    if CHATS_FILE.exists():
+        try:
+            return json.loads(CHATS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+def save_chats(chats):
+    try:
+        CHATS_FILE.write_text(json.dumps(chats, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+def get_user_chats(user_id):
+    chats = load_chats()
+    return chats.get(user_id, [])
+
+def save_user_chats(user_id, user_chats):
+    chats = load_chats()
+    chats[user_id] = user_chats
+    save_chats(chats)
+
+def auto_delete_old_chats():
+    """Delete chats older than 10 days"""
+    chats = load_chats()
+    changed = False
+    cutoff = datetime.now() - timedelta(days=10)
+    for user_id in list(chats.keys()):
+        user_chats = chats[user_id]
+        kept = []
+        for ch in user_chats:
+            try:
+                created = datetime.fromisoformat(ch.get("created_at", ""))
+                if created < cutoff:
+                    # Delete history file too
+                    history_path = HISTORY_DIR / f"{user_id}_{ch['id']}.json"
+                    if history_path.exists():
+                        try:
+                            history_path.unlink()
+                        except Exception:
+                            pass
+                    changed = True
+                    continue
+            except Exception:
+                pass
+            kept.append(ch)
+        if len(kept) != len(user_chats):
+            chats[user_id] = kept
+            changed = True
+    if changed:
+        save_chats(chats)
+
+def get_chat_history(user_id, chat_id):
+    path = HISTORY_DIR / f"{user_id}_{chat_id}.json"
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return []
+
+def save_chat_history(user_id, chat_id, history):
+    HISTORY_DIR.mkdir(exist_ok=True)
+    path = HISTORY_DIR / f"{user_id}_{chat_id}.json"
+    try:
+        path.write_text(json.dumps(history[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 def login_required(f):
     @wraps(f)
@@ -822,6 +896,18 @@ CONCEPT_DB = {
         ],
         "difficulty": "Go es intencionalmente simple. Es uno de los lenguajes mas faciles de aprender.",
     },
+    "c++": {
+        "what": "C++ es un lenguaje de programacion de proposito general, compilado, orientado a objetos y de alto rendimiento. Extiende C con clases, templates y STL.",
+        "how": "C++ compila directamente a codigo de maquina. Ofrece control manual de memoria (new/delete, smart pointers), plantillas para genericos, y la STL (contenedores, algoritmos, iteradores).",
+        "why": "C++ combina abstracciones de alto nivel con control de bajo nivel. Es el estandar en juegos, sistemas embebidos, trading de alta frecuencia, y software critico de rendimiento.",
+        "purpose": "C++ sirve para motores de juegos (Unreal Engine), sistemas operativos, navegadores, bases de datos, simulaciones, y cualquier software donde el rendimiento es critico.",
+        "examples": [
+            "std::vector<int> v = {1,2,3}; - vector dinamico",
+            "std::unique_ptr<int> p = std::make_unique<int>(42); - smart pointer",
+            "template <typename T> T max(T a, T b) { return a > b ? a : b; } - template",
+        ],
+        "difficulty": "C++ es dificil. Requiere entender punteros, memoria, templates, y la STL. Curva de aprendizaje empinada pero muy gratificante.",
+    },
     "sass": {
         "what": "SASS (Syntactically Awesome Stylesheets) es un preprocesador de CSS que agrega features como variables, nesting, mixins y funciones.",
         "how": "SASS compila a CSS vanilla. Agrega variables ($color), anidamiento (.nav { .item {} }), mixins (@mixin), y archivos parciales.",
@@ -1243,6 +1329,59 @@ def search_wikipedia_search(query, lang="es", limit=3):
         return []
 
 
+IMAGE_DB = {
+    "python": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg",
+    "javascript": "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png",
+    "html": "https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg",
+    "css": "https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg",
+    "python": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg",
+    "gato": "https://cdn.pixabay.com/photo/2017/02/20/18/03/cat-2083492_1280.jpg",
+    "perro": "https://cdn.pixabay.com/photo/2016/12/13/05/15/puppy-1903313_1280.jpg",
+    "tierra": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/1280px-The_Earth_seen_from_Apollo_17.jpg",
+    "luna": "https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg",
+    "sol": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Solar_prominence_20930215.jpg/1280px-Solar_prominence_20930215.jpg",
+    "linux": "https://upload.wikimedia.org/wikipedia/commons/a/af/Tux.png",
+    "windows": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Windows_logo_-_2012.svg",
+    "apple": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
+    "google": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg",
+    "titanic": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/RMS_Titanic_3.jpg/1280px-RMS_Titanic_3.jpg",
+    "coliseo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Colosseum_in_Rome_2015.jpg/1280px-Colosseum_in_Rome_2015.jpg",
+    "piramides": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Kheops-Pyramid.jpg/1280px-Kheops-Pyramid.jpg",
+    "marte": "https://upload.wikimedia.org/wikipedia/commons/0/02/OSIRIS_Mars_true_color.jpg",
+    "jupiter": "https://upload.wikimedia.org/wikipedia/commons/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg",
+    "bitcoin": "https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg",
+    "minecraft": "https://upload.wikimedia.org/wikipedia/commons/3/32/Minecraft_logo.svg",
+    "disney": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Disney_wordmark.svg",
+    "coca cola": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Coca-Cola_logo.svg",
+    "taj mahal": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Taj_Mahal_in_Agro.jpg/1280px-Taj_Mahal_in_Agro.jpg",
+    "nintendo": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Nintendo.svg",
+    "spotify": "https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg",
+    "netflix": "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
+    "tesla": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Tesla_Motors_logo.svg",
+    "spacex": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/SpaceX_logo_black.svg/1280px-SpaceX_logo_black.svg.png",
+    "robot": "https://upload.wikimedia.org/wikipedia/commons/4/4c/ASIMO_%28roboter%29.jpg",
+    "delfin": "https://cdn.pixabay.com/photo/2013/12/21/15/33/dolphin-231869_1280.jpg",
+    "elefante": "https://cdn.pixabay.com/photo/2016/11/14/04/45/elephant-1822636_1280.jpg",
+    "leon": "https://cdn.pixabay.com/photo/2017/02/28/19/34/lion-2106603_1280.jpg",
+    "giraffe": "https://cdn.pixabay.com/photo/2017/02/24/25/giraffe-2094770_1280.jpg",
+}
+
+def get_image_for_topic(text):
+    lower = normalize_text(text)
+    best_key = None
+    best_score = 0
+    for key in IMAGE_DB:
+        key_norm = normalize_text(key)
+        if key_norm in lower or lower in key_norm:
+            score = min(len(key_norm), len(lower)) / max(len(key_norm), len(lower))
+            if score > best_score:
+                best_score = score
+                best_key = key
+    if best_key and best_score > 0.3:
+        return IMAGE_DB[best_key]
+    return None
+
+
 def format_wiki_result(wiki_data):
     if not wiki_data or not wiki_data.get("extract"):
         return None
@@ -1261,6 +1400,340 @@ def format_wiki_result(wiki_data):
         parts.append(f'\n\n[Fuente: Wikipedia]({wiki_data["url"]})')
 
     return "\n\n".join(parts)
+
+
+FACTS_DB = {
+    "python": "Python fue creado por Guido van Rossum en 1991. Su nombre viene de los Monty Python.",
+    "javascript": "JavaScript fue creado por Brendan Eich en 10 dias en 1995.",
+    "html": "HTML fue creado por Tim Berners-Lee en 1991 mientras trabajaba en el CERN.",
+    "google": "Google procesa mas de 40,000 busquedas por segundo, mas de 3.5 billones al dia.",
+    "internet": "El primer sitio web fue creado por Tim Berners-Lee en 1991 y aun esta online.",
+    "linux": "Linux fue creado por Linus Torvalds en 1991 como un proyecto hobby.",
+    "windows": "Windows 1.0 fue lanzado en 1985, no fue popular hasta Windows 3.0 en 1990.",
+    "amazon": "Amazon empezo vendiendo libros en 1994 desde el garaje de Jeff Bezos.",
+    "gato": "Los gatos domesticos comparten el 95.6% de su genoma con los tigres.",
+    "perro": "Los perros tienen aproximadamente 300 millones de receptores olfativos, comparado con 5 millones en humanos.",
+    "delfin": "Los delfines duermen con un ojo abierto y la mitad de su cerebro activo.",
+    "pulpo": "Los pulpos tienen tres corazones, sangre azul y nueve cerebros (uno central y ocho en los brazos).",
+    "abeja": "Una abeja produce aproximadamente una cucharadita de miel en toda su vida.",
+    "ballena": "La ballena azul es el animal mas grande que ha existido, pesando hasta 200 toneladas.",
+    "tierra": "La Tierra viaja alrededor del Sol a 107,000 km/h, pero no lo sentimos por la inercia.",
+    "luna": "La Luna se aleja de la Tierra unos 3.8 cm cada año.",
+    "sol": "El Sol produce energia equivalente a 100 mil millones de bombas de hidrogeno por segundo.",
+    "agua": "El agua cubre el 71% de la superficie de la Tierra, pero solo el 2.5% es agua dulce.",
+    "cuerpo humano": "El cuerpo humano tiene aproximadamente 60,000 kilometros de vasos sanguineos.",
+    "cerebro": "El cerebro humano tiene alrededor de 86 mil millones de neuronas.",
+    "dna": "El ADN humano tiene aproximadamente 3 mil millones de pares de bases.",
+    "microondas": "El horno microondas fue inventado por accidente en 1945 por Percy Spencer mientras trabajaba con radar.",
+    "internet": "El primer sitio web fue creado por Tim Berners-Lee en 1991 y aun esta online en info.cern.ch.",
+    "youtube": "YouTube fue creado por tres ex-empleados de PayPal en 2005 y el primer video se llamo 'Me at the zoo'.",
+    "facebook": "Facebook fue lanzado en 2004 por Mark Zuckerberg desde su habitacion en Harvard.",
+    "whatsapp": "WhatsApp fue comprado por Facebook en 2014 por $19 mil millones, la mayor compra de una startup en esa epoca.",
+    "wikipedia": "Wikipedia tiene mas de 60 millones de articulos en mas de 300 idiomas, todos escritos por voluntarios.",
+    "tesla": "Tesla fue fundada en 2003 por Martin Eberhard y Marc Tarpenning. Elon Musk se unio como inversor principal.",
+    "spacex": "SpaceX fue fundada por Elon Musk en 2002 con el objetivo de colonizar Marte.",
+    "nasa": "La NASA fue creada en 1958 en respuesta al lanzamiento del Sputnik por la Union Sovietica.",
+    "apple": "Apple fue fundada por Steve Jobs, Steve Wozniak y Ronald Wayne en 1976 en un garaje.",
+    "microsoft": "Microsoft fue fundada por Bill Gates y Paul Allen en 1975. Su primer producto fue un interprete de BASIC.",
+    "netflix": "Netflix empezo en 1997 como un servicio de alquiler de DVD por correo. Hoy tiene mas de 270 millones de suscriptores.",
+    "spotify": "Spotify fue lanzado en 2008 en Suecia y revoluciono la industria musical con streaming.",
+    "chatgpt": "ChatGPT fue lanzado por OpenAI en noviembre de 2022 y alcanzo 100 millones de usuarios en solo 2 meses.",
+    "google": "Google maneja mas de 3.5 billones de busquedas al dia desde su fundacion en 1998 por Larry Page y Sergey Brin.",
+    "android": "Android fue comprado por Google en 2005 por $50 millones. Hoy es el sistema operativo movil mas usado del mundo.",
+    "iphone": "El primer iPhone fue lanzado en 2007 por Steve Jobs y cambio la industria de los smartphones para siempre.",
+    "bitcoin": "Bitcoin fue creado en 2009 por una persona o grupo bajo el seudonimo Satoshi Nakamoto.",
+    "ia": "El termino 'Inteligencia Artificial' fue acunado por John McCarthy en 1956 en la Conferencia de Dartmouth.",
+    "robot": "La palabra 'robot' viene del checo 'robota' que significa 'trabajo forzado'. Fue usada por primera vez en 1920.",
+    "programacion": "El primer lenguaje de programacion de alto nivel fue Plankalkul, creado por Konrad Zuse entre 1942 y 1945.",
+    "primer ordenador": "La ENIAC, considerada la primera computadora electronica de proposito general, pesaba 27 toneladas.",
+    "ibm": "IBM existe desde 1911, originalmente como Computing-Tabulating-Recording Company (CTR).",
+    "bug": "El termino 'bug' en programacion viene de un insecto real encontrado en un relay del Harvard Mark II en 1947.",
+    "hacker": "El termino 'hacker' originalmente describia a programadores expertos, no a criminales informaticos.",
+    "contraseña": "La contraseña mas comun en el mundo es '123456', seguida de 'password'.",
+    "velocidad luz": "La luz viaja a 299,792,458 metros por segundo. Puede dar 7.5 vueltas a la Tierra en un segundo.",
+    "gravedad": "La gravedad es la fuerza mas debil de las cuatro fuerzas fundamentales, pero la que mas sentimos.",
+    "rayo": "Un rayo puede alcanzar temperaturas de 30,000 grados Celsius, cinco veces mas caliente que la superficie del sol.",
+    "formula 1": "Un coche de Formula 1 puede perder hasta 10 kg de peso durante una carrera por el desgaste de los neumaticos.",
+    "ajedrez": "Hay mas posibles partidas de ajedrez que atomos en el universo observable.",
+    "musica": "La cancion mas reproducida en Spotify es 'Blinding Lights' de The Weeknd, con mas de 4 mil millones de reproducciones.",
+    "coliseo": "El Coliseo Romano podia albergar hasta 80,000 espectadores y tenia un toldo retractil gigante (velarium).",
+    "piramides": "Las piramides de Egipto fueron construidas hace mas de 4,500 anos y son las unicas maravillas del mundo antiguo que aun existen.",
+    "marte": "Un dia en Marte dura 24 horas y 37 minutos, casi igual que un dia en la Tierra.",
+    "jupiter": "Jupiter es el planeta mas grande del sistema solar y su Gran Mancha Roja es una tormenta que dura siglos.",
+    "vuelo": "El primer vuelo comercial de pasajeros fue en 1914, volando de San Petersburgo a Tampa, Florida, y duro 23 minutos.",
+    "titanic": "El Titanic tenia 269 metros de eslora y se hundio en 1912 en su viaje inaugural.",
+    "the beatles": "Los Beatles vendieron mas de 600 millones de discos en todo el mundo.",
+    "star wars": "Star Wars fue estrenada en 1977 y recaudo $775 millones, superando a Tiburon como la pelicula mas taquillera.",
+    "minecraft": "Minecraft es el videojuego mas vendido de la historia con mas de 300 millones de copias.",
+    "gta": "Grand Theft Auto V es uno de los juegos mas exitosos, generando mas de $6 mil millones desde su lanzamiento en 2013.",
+    "pokemon": "Pokemon es la franquicia mediatica mas grande del mundo, superando a Mickey Mouse y Star Wars.",
+    "coca cola": "Coca-Cola fue inventada en 1886 por John Pemberton y originalmente contenía cocaína.",
+    "kfc": "KFC fue fundado por el Coronel Harland Sanders a los 65 años, despues de recibir su primer cheque de jubilacion.",
+    "mcdonalds": "McDonald's fue fundado en 1940 por los hermanos Richard y Maurice McDonald en San Bernardino, California.",
+    "lego": "LEGO viene del danes 'leg godt' que significa 'juega bien'. Las piezas actuales son compatibles con las de 1958.",
+    "disney": "Walt Disney fundo Disney en 1923. El primer personaje creado fue Oswald el Conejo Afortunado, no Mickey Mouse.",
+    "nintendo": "Nintendo fue fundada en 1889 como una empresa de naipes (hanafuda) antes de entrar en los videojuegos.",
+    "samsung": "Samsung empezo en 1938 como una empresa de exportacion de pescado y verduras en Corea del Sur.",
+    "honda": "Honda empezo fabricando motores para bicicletas despues de la Segunda Guerra Mundial.",
+    "toyota": "Toyota empezo como fabricante de telares automaticos antes de producir automoviles.",
+    "ferrari": "Ferrari fue fundada por Enzo Ferrari en 1947. Originalmente era el equipo de carreras de Alfa Romeo.",
+    "lamborghini": "Lamborghini fue fundada por Ferruccio Lamborghini, un fabricante de tractores, despues de una disputa con Enzo Ferrari.",
+    "nikon": "Nikon fue fundada en 1917 como Nippon Kogaku Kogyo, fabricando lentes opticos para camaras.",
+    "canon": "Canon fue fundada en 1937 como Precision Optical Industry. Su primera camara fue la Kwanon.",
+    "post it": "Las notas Post-it fueron inventadas por accidente en 1968 cuando Spencer Silver creo un adhesivo debil.",
+    "velcro": "El velcro fue inventado en 1941 por George de Mestral despues de observar como las semillas de cardo se pegaban a su ropa.",
+    "microondas": "El horno microondas fue descubierto por accidente en 1945 por Percy Spencer mientras trabajaba con magnetrones de radar.",
+    "rayos x": "Los rayos X fueron descubiertos por Wilhelm Rontgen en 1895. La primera radiografia fue de la mano de su esposa.",
+    "penicilina": "La penicilina fue descubierta por Alexander Fleming en 1928 cuando observo moho que mataba bacterias.",
+    "vacuna": "La primera vacuna fue creada por Edward Jenner en 1796 contra la viruela, usando virus de la vaccinia (viruela bovina).",
+    "relatividad": "Einstein publico su teoria de la relatividad general en 1915, prediciendo agujeros negros y ondas gravitacionales.",
+    "big bang": "La teoria del Big Bang fue propuesta por Georges Lemaitre en 1927, un sacerdote y astronomo belga.",
+    "agujero negro": "El primer agujero negro fotografiado (M87) fue capturado en 2019 por el telescopio Event Horizon.",
+    "fotosintesis": "La fotosintesis convierte la luz solar en energia quimica, produciendo oxigeno como subproducto.",
+    "mariposa": "Las mariposas saborean con sus patas y tienen sensores de sabor en sus pies.",
+    "camaleon": "Los camaleones cambian de color para comunicarse y regular temperatura, no solo para camuflarse.",
+    "colibri": "Los colibris son las unicas aves que pueden volar hacia atras y baten sus alas hasta 80 veces por segundo.",
+    "hormiga": "Las hormigas pueden levantar hasta 50 veces su propio peso y existen mas de 12,000 especies.",
+    "elefante": "Los elefantes son los unicos animales con cuatro rodillas. Son el animal terrestre mas grande.",
+    "jirafa": "Las jirafas tienen el mismo numero de vertebras en el cuello que los humanos: siete.",
+    "canguro": "Los canguros no pueden caminar hacia atras y las hembras tienen tres vaginas.",
+    "panda": "Los pandas gigantes pasan hasta 14 horas al dia comiendo bambu, hasta 38 kg diarios.",
+    "tiburon": "Los tiburones han existido por mas de 400 millones de anos, antes que los dinosaurios.",
+    "fuego": "El fuego no tiene sombra porque la luz lo atraviesa. El fuego es plasma, no gas.",
+    "hielo": "El hielo flota porque es menos denso que el agua liquida, una propiedad unica del agua.",
+    "imanes": "Los imanes tienen dos polos (norte y sur) que nunca se pueden separar, incluso si los partes.",
+    "eco": "El eco se produce cuando el sonido rebota en una superficie y tarda mas de 0.1 segundos en regresar.",
+    "arcoiris": "Los arcoiris son circulos completos, pero desde el suelo solo vemos un arco porque la tierra bloquea la mitad.",
+}
+
+def search_duckduckgo(query):
+    try:
+        encoded = urllib.parse.quote(query)
+        url = f"https://api.duckduckgo.com/?q={encoded}&format=json&no_html=1"
+        req = urllib.request.Request(url, headers={"User-Agent": "ANS-AI/2.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            abstract = data.get("AbstractText", "") or data.get("Definition", "")
+            source = data.get("AbstractSource", "") or data.get("DefinitionSource", "")
+            if abstract:
+                return {"text": abstract, "source": source or "DuckDuckGo"}
+            related = data.get("RelatedTopics", [])
+            if related:
+                topic = related[0]
+                if isinstance(topic, dict) and "Text" in topic:
+                    return {"text": topic["Text"], "source": "DuckDuckGo"}
+    except Exception:
+        pass
+    return None
+
+
+def search_fact(query):
+    q = normalize_text(query)
+    for key, val in FACTS_DB.items():
+        if key in q or q in key:
+            return {"text": val, "source": "Curiosidad"}
+    return None
+
+
+def search_all_sources(query):
+    results = []
+    wiki = search_wikipedia(query)
+    if wiki and wiki.get("extract"):
+        img = wiki.get("thumbnail") or get_image_for_topic(query)
+        results.append({
+            "text": wiki["extract"][:500], "source": "Wikipedia",
+            "title": wiki.get("title", query), "url": wiki.get("url", ""),
+            "image": img,
+        })
+    ddg = search_duckduckgo(query)
+    if ddg:
+        img = get_image_for_topic(query)
+        results.append({"text": ddg["text"], "source": "DuckDuckGo", "image": img})
+    fact = search_fact(query)
+    if fact:
+        img = get_image_for_topic(query)
+        results.append({"text": fact["text"], "source": "Curiosidad", "image": img})
+    # Add more sources
+    if not wiki and not ddg and not fact:
+        wiki_search = search_wikipedia_search(query)
+        if wiki_search:
+            for r in wiki_search[:2]:
+                results.append({
+                    "text": r["snippet"][:300], "source": "Wikipedia (resultado)",
+                    "title": r["title"], "url": r["url"],
+                    "image": get_image_for_topic(query),
+                })
+    return results
+
+
+@app.route("/api/sources", methods=["POST"])
+def api_sources():
+    try:
+        data = request.get_json(silent=True) or {}
+        query = data.get("query", "").strip()
+        if not query:
+            return jsonify({"sources": []})
+        sources = search_all_sources(query)
+        return jsonify({"sources": sources})
+    except Exception:
+        return jsonify({"sources": []})
+
+
+@app.route("/api/draw", methods=["POST"])
+def api_draw():
+    try:
+        data = request.get_json(silent=True) or {}
+        query = data.get("query", "").strip().lower()
+        if not query:
+            return jsonify({"svg": "", "error": "Dime que dibujar"})
+
+        # Extract color
+        colors = {
+            "rojo": "#ef4444", "red": "#ef4444",
+            "azul": "#3b82f6", "blue": "#3b82f6",
+            "verde": "#22c55e", "green": "#22c55e",
+            "amarillo": "#fbbf24", "yellow": "#fbbf24", "dorado": "#fbbf24",
+            "naranja": "#f97316", "orange": "#f97316",
+            "morado": "#a855f7", "purple": "#a855f7", "violeta": "#a855f7",
+            "rosa": "#ec4899", "pink": "#ec4899",
+            "cyan": "#06b6d4", "celeste": "#06b6d4",
+            "blanco": "#ffffff", "white": "#ffffff",
+            "negro": "#1f2937", "black": "#1f2937",
+            "gris": "#9ca3af", "gray": "#9ca3af",
+        }
+        fill_color = "#57a6ff"
+        stroke_color = "#34d399"
+        for cname, cval in colors.items():
+            if cname in query:
+                fill_color = cval
+                stroke_color = cval
+                break
+
+        svg = ""
+        # Basic shapes
+        if any(w in query for w in ["circulo", "circle", "pelota", "bola", "esfera"]):
+            svg = f'<svg width="200" height="200"><circle cx="100" cy="100" r="60" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><text x="100" y="105" text-anchor="middle" fill="white" font-size="14">Círculo</text></svg>'
+        elif any(w in query for w in ["cuadrado", "square", "caja", "rectangulo", "rectángulo"]):
+            svg = f'<svg width="200" height="200"><rect x="30" y="30" width="140" height="140" rx="8" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><text x="100" y="105" text-anchor="middle" fill="white" font-size="14">Cuadrado</text></svg>'
+        elif any(w in query for w in ["triangulo", "triángulo", "triangle"]):
+            svg = f'<svg width="200" height="200"><polygon points="100,20 180,160 20,160" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><text x="100" y="115" text-anchor="middle" fill="white" font-size="14">Triángulo</text></svg>'
+        elif any(w in query for w in ["estrella", "star"]):
+            svg = f'<svg width="200" height="200"><polygon points="100,20 120,80 180,80 130,120 150,180 100,150 50,180 70,120 20,80 80,80" fill="{fill_color}" stroke="{stroke_color}" stroke-width="2"/><text x="100" y="105" text-anchor="middle" fill="white" font-size="14">Estrella</text></svg>'
+        elif any(w in query for w in ["casa", "house", "hogar"]):
+            svg = f'<svg width="220" height="200"><rect x="60" y="80" width="100" height="100" fill="{fill_color}" stroke="{stroke_color}" stroke-width="2"/><polygon points="30,80 110,20 190,80" fill="{stroke_color}" stroke="#f59e0b" stroke-width="2"/><rect x="90" y="120" width="40" height="60" fill="#131c2f" stroke="#f59e0b" stroke-width="2"/></svg>'
+        elif any(w in query for w in ["corazon", "corazón", "heart", "amor"]):
+            svg = f'<svg width="200" height="200"><path d="M100,170 C40,120 10,70 50,30 C70,10 100,30 100,50 C100,30 130,10 150,30 C190,70 160,120 100,170Z" fill="{fill_color}" stroke="{stroke_color}" stroke-width="2"/><text x="100" y="105" text-anchor="middle" fill="white" font-size="12">Corazón</text></svg>'
+        # New shapes
+        elif any(w in query for w in ["hexagono", "hexágono", "hexagon"]):
+            svg = f'<svg width="200" height="200"><polygon points="100,15 175,55 175,145 100,185 25,145 25,55" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><text x="100" y="105" text-anchor="middle" fill="white" font-size="14">Hexágono</text></svg>'
+        elif any(w in query for w in ["pentagono", "pentágono", "pentagon"]):
+            svg = f'<svg width="200" height="200"><polygon points="100,15 170,70 140,175 60,175 30,70" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><text x="100" y="105" text-anchor="middle" fill="white" font-size="14">Pentágono</text></svg>'
+        elif any(w in query for w in ["rombo", "diamond", "diamante"]):
+            svg = f'<svg width="200" height="200"><polygon points="100,20 180,100 100,180 20,100" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><text x="100" y="105" text-anchor="middle" fill="white" font-size="14">Rombo</text></svg>'
+        elif any(w in query for w in ["nube", "cloud"]):
+            svg = f'<svg width="250" height="150"><ellipse cx="80" cy="80" rx="50" ry="30" fill="{fill_color}"/><ellipse cx="140" cy="70" rx="40" ry="25" fill="{fill_color}"/><ellipse cx="180" cy="90" rx="35" ry="25" fill="{fill_color}"/><ellipse cx="120" cy="95" rx="45" ry="25" fill="{fill_color}"/></svg>'
+        elif any(w in query for w in ["sol", "sun"]):
+            svg = f'<svg width="200" height="200"><circle cx="100" cy="100" r="40" fill="#fbbf24" stroke="#f59e0b" stroke-width="3"/><g stroke="#fbbf24" stroke-width="3"><line x1="100" y1="15" x2="100" y2="35"/><line x1="100" y1="165" x2="100" y2="185"/><line x1="15" y1="100" x2="35" y2="100"/><line x1="165" y1="100" x2="185" y2="100"/><line x1="35" y1="35" x2="50" y2="50"/><line x1="150" y1="150" x2="165" y2="165"/><line x1="35" y1="165" x2="50" y2="150"/><line x1="150" y1="50" x2="165" y2="35"/></g></svg>'
+        elif any(w in query for w in ["luna", "moon"]):
+            svg = f'<svg width="200" height="200"><circle cx="100" cy="100" r="60" fill="#fbbf24"/><circle cx="130" cy="80" r="60" fill="#0f1624"/></svg>'
+        elif any(w in query for w in ["arbol", "árbol", "tree"]):
+            svg = f'<svg width="200" height="250"><rect x="90" y="150" width="20" height="100" fill="#8b4513"/><ellipse cx="100" cy="80" rx="60" ry="70" fill="#22c55e"/><ellipse cx="50" cy="120" rx="40" ry="30" fill="#16a34a"/><ellipse cx="150" cy="120" rx="40" ry="30" fill="#16a34a"/></svg>'
+        elif any(w in query for w in ["flor", "flower"]):
+            svg = f'<svg width="200" height="250"><line x1="100" y1="150" x2="100" y2="240" stroke="#22c55e" stroke-width="6"/><g fill="{fill_color}" stroke="{stroke_color}" stroke-width="2"><circle cx="100" cy="100" r="30"/><circle cx="100" cy="50" r="25"/><circle cx="140" cy="85" r="25"/><circle cx="60" cy="85" r="25"/><circle cx="80" cy="130" r="25"/><circle cx="120" cy="130" r="25"/></g><circle cx="100" cy="100" r="15" fill="#fbbf24"/></svg>'
+        elif any(w in query for w in ["gato", "cat", "gatito"]):
+            svg = f'<svg width="200" height="200"><circle cx="100" cy="110" r="50" fill="{fill_color}"/><circle cx="70" cy="65" r="25" fill="{fill_color}"/><circle cx="130" cy="65" r="25" fill="{fill_color}"/><circle cx="80" cy="100" r="8" fill="white"/><circle cx="120" cy="100" r="8" fill="white"/><circle cx="75" cy="100" r="4" fill="black"/><circle cx="115" cy="100" r="4" fill="black"/><ellipse cx="100" cy="125" rx="15" ry="8" fill="pink"/><path d="M85,130 Q100,135 115,130" stroke="black" stroke-width="2" fill="none"/></svg>'
+        elif any(w in query for w in ["perro", "dog", "perrito"]):
+            svg = f'<svg width="200" height="200"><ellipse cx="100" cy="120" rx="55" ry="45" fill="{fill_color}"/><circle cx="100" cy="70" r="35" fill="{fill_color}"/><ellipse cx="70" cy="50" rx="15" ry="25" fill="{fill_color}"/><ellipse cx="130" cy="50" rx="15" ry="25" fill="{fill_color}"/><circle cx="85" cy="65" r="6" fill="white"/><circle cx="115" cy="65" r="6" fill="white"/><circle cx="82" cy="65" r="3" fill="black"/><circle cx="112" cy="65" r="3" fill="black"/><ellipse cx="100" cy="85" rx="12" ry="8" fill="#8b4513"/><path d="M90,92 Q100,98 110,92" stroke="black" stroke-width="2" fill="none"/></svg>'
+        elif any(w in query for w in ["cohete", "rocket", "nave"]):
+            svg = f'<svg width="150" height="300"><rect x="50" y="50" width="50" height="180" rx="5" fill="{fill_color}" stroke="{stroke_color}" stroke-width="2"/><polygon points="50,50 75,15 100,50" fill="{stroke_color}"/><rect x="60" y="180" width="30" height="50" fill="#8b4513"/><ellipse cx="75" cy="120" rx="15" ry="15" fill="#06b6d4"/><path d="M50,230 L30,280 M100,230 L120,280" stroke="#f59e0b" stroke-width="8" stroke-linecap="round"/></svg>'
+        elif any(w in query for w in ["robot", "bot"]):
+            svg = f'<svg width="200" height="250"><rect x="50" y="120" width="100" height="100" rx="10" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><rect x="65" y="140" width="30" height="20" rx="5" fill="#06b6d4"/><rect x="105" y="140" width="30" height="20" rx="5" fill="#06b6d4"/><circle cx="80" cy="90" r="25" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><circle cx="70" cy="85" r="5" fill="white"/><circle cx="90" cy="85" r="5" fill="white"/><line x1="30" y1="140" x2="20" y2="120" stroke="{stroke_color}" stroke-width="5" stroke-linecap="round"/><line x1="170" y1="140" x2="180" y2="120" stroke="{stroke_color}" stroke-width="5" stroke-linecap="round"/></svg>'
+        elif any(w in query for w in ["coche", "car", "auto", "carro"]):
+            svg = f'<svg width="300" height="150"><rect x="30" y="60" width="240" height="50" rx="10" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><polygon points="60,60 90,30 210,30 240,60" fill="{stroke_color}"/><circle cx="80" cy="110" r="20" fill="#1f2937" stroke="#fff" stroke-width="2"/><circle cx="220" cy="110" r="20" fill="#1f2937" stroke="#fff" stroke-width="2"/><circle cx="80" cy="110" r="8" fill="#fff"/><circle cx="220" cy="110" r="8" fill="#fff"/></svg>'
+        elif any(w in query for w in ["avion", "avión", "plane", "aereo", "aéreo"]):
+            svg = f'<svg width="300" height="150"><path d="M30,100 Q100,20 150,100 Q100,180 30,100" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3"/><polygon points="150,100 250,70 250,130" fill="{stroke_color}"/><ellipse cx="60" cy="100" rx="80" ry="15" fill="{stroke_color}"/></svg>'
+        elif any(w in query for w in ["barco", "ship", "velero"]):
+            svg = f'<svg width="300" height="200"><path d="M20,140 Q150,100 280,140 L280,170 L20,170 Z" fill="#8b4513" stroke="#5c4033" stroke-width="3"/><line x1="150" y1="40" x2="150" y2="140" stroke="#5c4033" stroke-width="4"/><polygon points="150,40 250,90 150,120" fill="#fff"/></svg>'
+        elif any(w in query for w in ["taza", "cup", "cafe", "café", "mug"]):
+            svg = f'<svg width="200" height="200"><path d="M50,180 L60,80 Q100,60 140,80 L150,180" fill="{fill_color}" stroke="{stroke_color}" stroke-width="3" stroke-linejoin="round"/><path d="M150,120 Q180,110 180,90 Q180,70 150,60" fill="none" stroke="{stroke_color}" stroke-width="3" stroke-linecap="round"/><ellipse cx="100" cy="65" rx="45" ry="8" fill="{stroke_color}"/></svg>'
+        elif any(w in query for w in ["pizza"]):
+            svg = f'<svg width="200" height="200"><circle cx="100" cy="100" r="90" fill="#f59e0b" stroke="#d97706" stroke-width="4"/><g fill="#ef4444"><circle cx="70" cy="70" r="12"/><circle cx="130" cy="80" r="10"/><circle cx="100" cy="130" r="11"/><circle cx="50" cy="110" r="9"/><circle cx="140" cy="120" r="10"/></g></svg>'
+        elif any(w in query for w in ["hamburguesa", "burger", "hamburger"]):
+            svg = f'<svg width="200" height="250"><ellipse cx="100" cy="40" rx="70" ry="20" fill="#f59e0b"/><ellipse cx="100" cy="80" rx="75" ry="15" fill="#4ade80"/><ellipse cx="100" cy="110" rx="78" ry="18" fill="#ef4444"/><ellipse cx="100" cy="140" rx="75" ry="15" fill="#fbbf24"/><ellipse cx="100" cy="170" rx="70" ry="18" fill="#8b4513"/><ellipse cx="100" cy="195" rx="70" ry="20" fill="#f59e0b"/></svg>'
+        elif any(w in query for w in ["donut", "dona", "rosquilla"]):
+            svg = f'<svg width="200" height="200"><circle cx="100" cy="100" r="70" fill="#d97706" stroke="#92400e" stroke-width="3"/><circle cx="100" cy="100" r="25" fill="#0f1624"/><g fill="#ec4899"><circle cx="70" cy="50" r="10"/><circle cx="130" cy="60" r="8"/><circle cx="110" cy="140" r="9"/><circle cx="50" cy="120" r="7"/><circle cx="150" cy="110" r="8"/></g></svg>'
+        else:
+            svg = f'<svg width="250" height="100"><rect x="10" y="10" width="230" height="80" rx="12" fill="#0f1624" stroke="#57a6ff" stroke-width="1"/><text x="125" y="50" text-anchor="middle" fill="#98a8c3" font-size="14">Dibujo: {query[:30]}</text><text x="125" y="70" text-anchor="middle" fill="#98a8c3" font-size="10">formas: circulo, triangulo, estrella, casa, corazon, hexagono, nube, sol, arbol, gato, perro, cohete, robot, coche, avion, barco, pizza, hamburguesa, donut...</text></svg>'
+
+        return jsonify({"svg": svg, "query": query})
+    except Exception:
+        return jsonify({"svg": "", "error": "Error al dibujar"})
+
+
+@app.route("/api/calculate", methods=["POST"])
+def api_calculate():
+    try:
+        data = request.get_json(silent=True) or {}
+        expr = data.get("expr", "").strip()
+        if not expr:
+            return jsonify({"result": None, "error": "Expresion vacia"})
+
+        # Safe evaluation
+        import re
+        allowed = re.compile(r'^[\d\s\+\-\*/\(\)\.\%\*\*]+$')
+        if not allowed.match(expr):
+            return jsonify({"result": None, "error": "Expresion invalida"})
+
+        result = eval(expr, {"__builtins__": {}}, {})
+        return jsonify({"result": result, "expr": expr})
+    except Exception as e:
+        return jsonify({"result": None, "error": str(e)})
+
+
+MESSAGES_FILE = BASE_DIR / "ans_messages.json"
+
+def load_messages():
+    if MESSAGES_FILE.exists():
+        try:
+            return json.loads(MESSAGES_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"messages": []}
+
+def save_messages(msgs):
+    try:
+        MESSAGES_FILE.write_text(json.dumps(msgs, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+@app.route("/api/contact", methods=["POST"])
+def api_contact():
+    try:
+        data = request.get_json(silent=True) or {}
+        name = data.get("name", "Anonimo").strip()
+        email = data.get("email", "").strip()
+        message = data.get("message", "").strip()
+        tipo = data.get("type", "sugerencia")
+        if not message:
+            return jsonify({"ok": False, "error": "Escribe un mensaje"})
+        msgs = load_messages()
+        msgs.setdefault("messages", []).append({
+            "name": name,
+            "email": email,
+            "message": message,
+            "type": tipo,
+            "date": datetime.now().isoformat(),
+        })
+        save_messages(msgs)
+        return jsonify({"ok": True})
+    except Exception:
+        return jsonify({"ok": False, "error": "Error al enviar"})
+
+
+@app.route("/contacto")
+def contacto():
+    return render_template("contacto.html")
 
 
 @app.route("/api/search", methods=["POST"])
@@ -1296,6 +1769,7 @@ def admin():
     concept_count = len(KNOWLEDGE_BASE)
     memory_count = len(learned)
     blocked = memory.get("blocked", [])
+    messages = load_messages().get("messages", [])
     history_files = []
     if HISTORY_DIR.exists():
         for f in sorted(HISTORY_DIR.iterdir(), reverse=True)[:50]:
@@ -1304,7 +1778,7 @@ def admin():
                 history_files.append({"name": f.name, "size": len(data), "updated": datetime.fromtimestamp(f.stat().st_mtime).isoformat()})
             except Exception:
                 history_files.append({"name": f.name, "size": 0, "updated": ""})
-    return render_template("admin.html", users=user_list, concepts=concept_count, memory=memory_count, history_files=history_files, memory_items=list(learned.items())[:100], blocked=blocked)
+    return render_template("admin.html", users=user_list, concepts=concept_count, memory=memory_count, history_files=history_files, memory_items=list(learned.items())[:100], blocked=blocked, messages=messages, facts_count=len(FACTS_DB))
 
 
 @app.route("/admin/delete-memory-item", methods=["POST"])
@@ -1433,13 +1907,82 @@ def admin_stats():
     })
 
 
+@app.route("/api/chats", methods=["GET"])
+@login_required
+def api_list_chats():
+    user = session.get("user", {})
+    user_id = user.get("id", "anonymous")
+    auto_delete_old_chats()
+    user_chats = get_user_chats(user_id)
+    return jsonify({"chats": user_chats})
+
+@app.route("/api/chats", methods=["POST"])
+@login_required
+def api_create_chat():
+    user = session.get("user", {})
+    user_id = user.get("id", "anonymous")
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip() or "Nuevo chat"
+    modelo = data.get("modelo", "flask")
+    chat_id = str(uuid.uuid4())[:8]
+    chat_entry = {
+        "id": chat_id,
+        "name": name,
+        "model": modelo,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+    }
+    user_chats = get_user_chats(user_id)
+    user_chats.insert(0, chat_entry)
+    save_user_chats(user_id, user_chats)
+    return jsonify({"chat": chat_entry})
+
+@app.route("/api/chats/<chat_id>", methods=["PUT"])
+@login_required
+def api_rename_chat(chat_id):
+    user = session.get("user", {})
+    user_id = user.get("id", "anonymous")
+    data = request.get_json(silent=True) or {}
+    new_name = data.get("name", "").strip()
+    if not new_name:
+        return jsonify({"error": "Nombre requerido"}), 400
+    user_chats = get_user_chats(user_id)
+    for ch in user_chats:
+        if ch["id"] == chat_id:
+            ch["name"] = new_name
+            ch["updated_at"] = datetime.now().isoformat()
+            save_user_chats(user_id, user_chats)
+            return jsonify({"ok": True})
+    return jsonify({"error": "Chat no encontrado"}), 404
+
+@app.route("/api/chats/<chat_id>", methods=["DELETE"])
+@login_required
+def api_delete_chat(chat_id):
+    user = session.get("user", {})
+    user_id = user.get("id", "anonymous")
+    user_chats = get_user_chats(user_id)
+    user_chats = [ch for ch in user_chats if ch["id"] != chat_id]
+    save_user_chats(user_id, user_chats)
+    # Delete history file
+    history_path = HISTORY_DIR / f"{user_id}_{chat_id}.json"
+    if history_path.exists():
+        try:
+            history_path.unlink()
+        except Exception:
+            pass
+    return jsonify({"ok": True})
+
 @app.route("/api/history", methods=["GET"])
 @login_required
 def get_history():
     user = session.get("user", {})
     modelo = request.args.get("modelo", "flask")
+    chat_id = request.args.get("chat_id", "")
     user_id = user.get("id", "anonymous")
-    history = load_user_history(user_id, modelo)
+    if chat_id:
+        history = get_chat_history(user_id, chat_id)
+    else:
+        history = load_user_history(user_id, modelo)
     return jsonify({"history": history})
 
 
@@ -1449,9 +1992,20 @@ def save_history():
     user = session.get("user", {})
     data = request.get_json(silent=True) or {}
     modelo = data.get("modelo", "flask")
+    chat_id = data.get("chat_id", "")
     historial = data.get("historial", [])
     user_id = user.get("id", "anonymous")
-    save_user_history(user_id, modelo, historial)
+    if chat_id:
+        save_chat_history(user_id, chat_id, historial)
+        # Update chat's updated_at
+        user_chats = get_user_chats(user_id)
+        for ch in user_chats:
+            if ch["id"] == chat_id:
+                ch["updated_at"] = datetime.now().isoformat()
+                save_user_chats(user_id, user_chats)
+                break
+    else:
+        save_user_history(user_id, modelo, historial)
     return jsonify({"ok": True})
 
 
@@ -1461,8 +2015,12 @@ def clear_history():
     user = session.get("user", {})
     data = request.get_json(silent=True) or {}
     modelo = data.get("modelo", "flask")
+    chat_id = data.get("chat_id", "")
     user_id = user.get("id", "anonymous")
-    save_user_history(user_id, modelo, [])
+    if chat_id:
+        save_chat_history(user_id, chat_id, [])
+    else:
+        save_user_history(user_id, modelo, [])
     return jsonify({"ok": True})
 
 
@@ -1485,14 +2043,25 @@ def google_login():
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         return redirect(url_for("login"))
 
+    # Use env var redirect_uri if set (what's registered in Google Cloud Console)
+    if GOOGLE_REDIRECT_URI:
+        redirect_uri = GOOGLE_REDIRECT_URI
+    else:
+        # Dynamic fallback: normalize 127.0.0.1 → localhost for GCP match
+        base_url = request.host_url.rstrip("/")
+        base_url = base_url.replace("127.0.0.1", "localhost").replace("0.0.0.0", "localhost")
+        redirect_uri = f"{base_url}/auth/google/callback"
+
     params = {
         "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
         "prompt": "consent",
+        "display": "popup",
     }
+    session["google_redirect_uri"] = redirect_uri
     url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
     return redirect(url)
 
@@ -1541,11 +2110,13 @@ def google_callback():
 
 def exchange_code_for_token(code):
     try:
+        # Use session-stored redirect_uri (dynamic), fall back to env var
+        redirect_uri = session.pop("google_redirect_uri", None) or GOOGLE_REDIRECT_URI
         data = urllib.parse.urlencode({
             "code": code,
             "client_id": GOOGLE_CLIENT_ID,
             "client_secret": GOOGLE_CLIENT_SECRET,
-            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "redirect_uri": redirect_uri,
             "grant_type": "authorization_code",
         }).encode()
 
@@ -1556,7 +2127,8 @@ def exchange_code_for_token(code):
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8"))
-    except Exception:
+    except Exception as e:
+        print(f"Token exchange error: {e}")
         return None
 
 
@@ -1638,9 +2210,15 @@ def save_memory(memory):
 
 
 def solve_basic_equation(text):
+    """Solve equations with any single-letter variable (x, t, y, z, a, b, etc.)"""
+    var_match = re.search(r"(?:^|\s|\d)([a-z])\s*(?:[+\-*/^]|$|=)", text, re.IGNORECASE)
+    if not var_match:
+        return None
+    var = var_match.group(1).lower()
+
     patterns = [
-        r"^\s*(-?\d*)x\s*([+-])\s*(\d+)\s*=\s*(-?\d+)\s*$",
-        r"^\s*(-?\d*)x\s*=\s*(-?\d+)\s*$",
+        rf"^\s*(-?\d*){var}\s*([+-])\s*(\d+)\s*=\s*(-?\d+)\s*$",
+        rf"^\s*(-?\d*){var}\s*=\s*(-?\d+)\s*$",
     ]
 
     match = re.search(patterns[0], text, re.IGNORECASE)
@@ -1653,18 +2231,18 @@ def solve_basic_equation(text):
             b = -b
 
         step1 = c - b
-        x = step1 / a
+        result = step1 / a
 
         return (
             "<div class=\"math-box\">"
-            "<strong>📐 Ecuacion detectada</strong><br><br>"
-            f"Ecuacion original: <code>{a}x {sign} {abs(int(raw_b))} = {c}</code><br><br>"
+            f"<strong>📐 Ecuacion detectada</strong><br><br>"
+            f"Ecuacion original: <code>{a}{var} {sign} {abs(int(raw_b))} = {c}</code><br><br>"
             f"<strong>Paso 1:</strong> Agrupar terminos independientes<br>"
-            f"<code>{a}x = {c} - ({b})</code><br>"
-            f"<code>{a}x = {step1}</code><br><br>"
-            f"<strong>Paso 2:</strong> Despejar x<br>"
-            f"<code>x = {step1} / {a}</code><br><br>"
-            f"<strong>Resultado: x = {x}</strong>"
+            f"<code>{a}{var} = {c} - ({b})</code><br>"
+            f"<code>{a}{var} = {step1}</code><br><br>"
+            f"<strong>Paso 2:</strong> Despejar {var}<br>"
+            f"<code>{var} = {step1} / {a}</code><br><br>"
+            f"<strong>Resultado: {var} = {result}</strong>"
             "</div>"
         )
 
@@ -1674,14 +2252,14 @@ def solve_basic_equation(text):
         raw_b = match2.group(2)
         a = 1 if raw_a in ("", "+") else -1 if raw_a == "-" else int(raw_a)
         b = int(raw_b)
-        x = b / a
+        result = b / a
 
         return (
             "<div class=\"math-box\">"
-            "<strong>📐 Ecuacion simple detectada</strong><br><br>"
-            f"<code>{a}x = {b}</code><br>"
-            f"<code>x = {b} / {a}</code><br><br>"
-            f"<strong>Resultado: x = {x}</strong>"
+            f"<strong>📐 Ecuacion simple detectada</strong><br><br>"
+            f"<code>{a}{var} = {b}</code><br>"
+            f"<code>{var} = {b} / {a}</code><br><br>"
+            f"<strong>Resultado: {var} = {result}</strong>"
             "</div>"
         )
 
@@ -1743,6 +2321,174 @@ def _format_num(n):
     if isinstance(n, float):
         return f"{n:.6g}"
     return str(n)
+
+
+def solve_logarithms(text):
+    lower = normalize_text(text)
+    # Examples: log(100), ln(5), log10(100), log2(8), logaritmo base 2 de 8
+    patterns = [
+        (r"log10?\s*\(\s*(\d+(?:\.\d+)?)\s*\)", lambda m: math.log10(float(m.group(1)))),
+        (r"ln\s*\(\s*(\d+(?:\.\d+)?)\s*\)", lambda m: math.log(float(m.group(1)))),
+        (r"log2\s*\(\s*(\d+(?:\.\d+)?)\s*\)", lambda m: math.log(float(m.group(1)), 2)),
+        (r"log\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)", lambda m: math.log(float(m.group(1)), float(m.group(2)))),
+        (r"log\s*\(\s*(\d+(?:\.\d+)?)\s*\)", lambda m: math.log10(float(m.group(1)))),
+        (r"logaritmo\s+(?:natural\s+)?(?:de\s+)?(\d+(?:\.\d+)?)", lambda m: math.log(float(m.group(1)))),
+        (r"logaritmo\s+base\s+(\d+(?:\.\d+)?)\s+de\s+(\d+(?:\.\d+)?)", lambda m: math.log(float(m.group(2)), float(m.group(1)))),
+        (r"log10\s+de\s+(\d+(?:\.\d+)?)", lambda m: math.log10(float(m.group(1)))),
+        (r"ln\s+de\s+(\d+(?:\.\d+)?)", lambda m: math.log(float(m.group(1)))),
+    ]
+    for pattern, calc in patterns:
+        match = re.search(pattern, lower)
+        if match:
+            try:
+                result = calc(match)
+                # Pretty print the formula back
+                if "ln" in pattern:
+                    formula = f"ln({match.group(1)})"
+                elif "log10" in pattern or "log10" in pattern:
+                    formula = f"log10({match.group(1)})"
+                elif "log2" in pattern:
+                    formula = f"log2({match.group(1)})"
+                elif "base" in lower:
+                    formula = f"log_{match.group(1)}({match.group(2)})"
+                elif "log" in pattern and "," not in pattern:
+                    formula = f"log({match.group(1)})"
+                else:
+                    formula = text.strip()
+                return (
+                    "<div class=\"math-box\">"
+                    f"<strong>📐 Logaritmo</strong><br><br>"
+                    f"<code>{formula} = {_format_num(result)}</code><br><br>"
+                    f"<small>Base: {'e' if 'ln' in pattern or 'natural' in lower else '10' if 'log10' in pattern else '2' if 'log2' in pattern else '10'}</small>"
+                    "</div>"
+                )
+            except (ValueError, ZeroDivisionError):
+                return "No se puede calcular el logaritmo de ese numero (debe ser > 0)."
+    return None
+
+
+def solve_algebra(text):
+    """Solve more complex equations: ax + b = cx + d, quadratic, etc."""
+    lower = normalize_text(text)
+
+    # Detect any single-letter variable used in the equation
+    vmatch = re.search(r"(?:^|\s|\d)([a-z])\s*(?:[+\-*/^]|$)", lower)
+    _var = vmatch.group(1) if vmatch else "x"
+    _evar = re.escape(_var)
+
+    # Quadratic: av^2 + bv + c = 0
+    qpat = r"(\d+(?:\.\d+)?)\s*" + _evar + r"\s*\^?\s*2\s*([+-])\s*(\d+(?:\.\d+)?)\s*" + _evar + r"\s*([+-])\s*(\d+(?:\.\d+)?)\s*=\s*0"
+    quad = re.search(qpat, lower)
+    if quad:
+        a = float(quad.group(1))
+        b_sign = 1 if quad.group(2) == "+" else -1
+        b = b_sign * float(quad.group(3))
+        c_sign = 1 if quad.group(4) == "+" else -1
+        c = c_sign * float(quad.group(5))
+        disc = b*b - 4*a*c
+        if disc < 0:
+            return (
+                "<div class=\"math-box\">"
+                f"<strong>📐 Ecuacion cuadratica</strong><br><br>"
+                f"<code>{a}{_var}² + {b}{_var} + {c} = 0</code><br><br>"
+                f"Discriminante = {b}² - 4({a})({c}) = {disc} < 0<br>"
+                f"<strong>No tiene solucion real</strong> (raices complejas)"
+                "</div>"
+            )
+        x1 = (-b + math.sqrt(disc)) / (2*a)
+        x2 = (-b - math.sqrt(disc)) / (2*a)
+        return (
+            "<div class=\"math-box\">"
+            f"<strong>📐 Ecuacion cuadratica</strong><br><br>"
+            f"<code>{a}{_var}² + {b}{_var} + {c} = 0</code><br><br>"
+            f"<strong>Formula general:</strong><br>"
+            f"{_var} = [ -({b}) ± √({b}² - 4·{a}·{c}) ] / (2·{a})<br><br>"
+            f"Discriminante: {disc}<br><br>"
+            f"<strong>{_var}₁ = {_format_num(x1)}</strong><br>"
+            f"<strong>{_var}₂ = {_format_num(x2)}</strong>"
+            "</div>"
+        )
+
+    # Both sides: av + b = cv + d
+    both_pat = r"(\d+)\s*" + _evar + r"\s*([+-])\s*(\d+)\s*=\s*(\d+)\s*" + _evar + r"\s*([+-])\s*(\d+)"
+    both = re.search(both_pat, lower)
+    if both:
+        a = float(both.group(1))
+        sign_b = 1 if both.group(2) == "+" else -1
+        b = sign_b * float(both.group(3))
+        c = float(both.group(4))
+        sign_d = 1 if both.group(5) == "+" else -1
+        d = sign_d * float(both.group(6))
+        result = (d - b) / (a - c)
+        return (
+            "<div class=\"math-box\">"
+            f"<strong>📐 Ecuacion con {_var} en ambos lados</strong><br><br>"
+            f"<code>{a}{_var} {'+' if b >= 0 else '-'} {abs(int(b))} = {c}{_var} {'+' if d >= 0 else '-'} {abs(int(d))}</code><br><br>"
+            f"<strong>Paso 1:</strong> Agrupar terminos con {_var}<br>"
+            f"<code>{a}{_var} - {c}{_var} = {d} - ({b})</code><br>"
+            f"<code>({a-c}){_var} = {d-b}</code><br><br>"
+            f"<strong>Paso 2:</strong> Despejar {_var}<br>"
+            f"<code>{_var} = {d-b} / {a-c}</code><br><br>"
+            f"<strong>Resultado: {_var} = {_format_num(result)}</strong>"
+            "</div>"
+        )
+
+    # Like terms: av + bv = c  (e.g. "2t + 2t = 0" → 4t = 0 → t = 0)
+    like_pat = r"(\d+)\s*" + _evar + r"\s*([+-])\s*(\d+)\s*" + _evar + r"\s*=\s*(-?\d+)"
+    like_m = re.search(like_pat, lower)
+    if like_m:
+        a = float(like_m.group(1))
+        sign_b = 1 if like_m.group(2) == "+" else -1
+        b = sign_b * float(like_m.group(3))
+        c = float(like_m.group(4))
+        combined = a + b
+        if combined == 0:
+            return (
+                "<div class=\"math-box\">"
+                f"<strong>📐 Combinacion de terminos</strong><br><br>"
+                f"<code>{a}{_var} {'+' if b >= 0 else '-'} {abs(int(b))}{_var} = {c}</code><br><br>"
+                f"({a}{'+' if b >= 0 else '-'}{abs(int(b))}){_var} = {c}<br>"
+                f"<code>{combined}{_var} = {c}</code><br><br>"
+                f"Los terminos se cancelan: 0{_var} = {c}<br>"
+                f"<strong>No tiene solucion</strong> (a menos que {c} = 0)"
+                "</div>"
+            )
+        result = c / combined
+        return (
+            "<div class=\"math-box\">"
+            f"<strong>📐 Combinacion de terminos semejantes</strong><br><br>"
+            f"<code>{a}{_var} {'+' if b >= 0 else '-'} {abs(int(b))}{_var} = {c}</code><br><br>"
+            f"<strong>Paso 1:</strong> Sumar coeficientes<br>"
+            f"<code>({a} {'+' if b >= 0 else '-'} {abs(int(b))}){_var} = {c}</code><br>"
+            f"<code>{combined}{_var} = {c}</code><br><br>"
+            f"<strong>Paso 2:</strong> Despejar {_var}<br>"
+            f"<code>{_var} = {c} / {combined}</code><br><br>"
+            f"<strong>Resultado: {_var} = {_format_num(result)}</strong>"
+            "</div>"
+        )
+
+    # Detect incomplete algebra EXPRESSION: "2t + 3", "x + 5" (has var but no =)
+    if "=" not in lower and len(text) < 30:
+        num_var = r"\d+\s*" + _evar + r"\s*[+\-*/^]"
+        var_op = r"(?:^|\s|\d)" + _evar + r"\s*[+\-*/^=]|[+\-*/^]\s*" + _evar
+        if re.search(num_var, lower) or re.search(var_op, lower):
+            esc = html_lib.escape(text.strip())
+            return (
+                "<div class=\"math-box\">"
+                "<strong>📐 Expresion algebraica detectada</strong><br><br>"
+                f"Escribiste: <code>{esc}</code><br><br>"
+                "Es una <strong>expresion algebraica</strong>, pero falta el <strong>=</strong> para resolverla.<br><br>"
+                "<strong>Ejemplos completos:</strong><br>"
+                f"<code>{esc} = 0</code><br>"
+                f"<code>{esc} = 10</code><br><br>"
+                "✏️ *Escribe la ecuacion completa (con =) para que la resuelva.*"
+                "</div>"
+            )
+
+    solve_match = re.search(r"(?:solve|resolver|despejar)\s*(?:x|la\s*ecuacion)?\s*([\dx\s+\-*/^=.]+)", lower)
+    if solve_match:
+        return None
+    return None
 
 
 def solve_advanced_math(text):
@@ -1860,6 +2606,41 @@ def analyze_text(text):
     return None
 
 
+def translate_text(text, target="es"):
+    """Translate text using free Google Translate API"""
+    try:
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target}&dt=t&q={urllib.parse.quote(text)}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = json.loads(resp.read().decode())
+        parts = []
+        for sentence in data[0]:
+            if sentence[0]:
+                parts.append(sentence[0])
+        return "".join(parts) if parts else None
+    except Exception as e:
+        print(f"Translation error: {e}")
+        return None
+
+
+@app.route("/api/translate", methods=["POST"])
+def api_translate():
+    try:
+        data = request.get_json(silent=True) or {}
+        text = data.get("text", "").strip()
+        to_lang = data.get("to", "es")
+        if not text:
+            return jsonify({"error": "Texto requerido"}), 400
+        if len(text) > 2000:
+            return jsonify({"error": "Texto demasiado largo (max 2000 caracteres)"}), 400
+        result = translate_text(text, to_lang)
+        if result:
+            return jsonify({"original": text, "translated": result, "to": to_lang})
+        return jsonify({"error": "No se pudo traducir"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 def detect_intent(text, memory):
     lower = normalize_text(text)
     now = datetime.now()
@@ -1867,8 +2648,85 @@ def detect_intent(text, memory):
     if re.search(r"(?:chiste|joke|reirme|divertirme)", lower):
         return random.choice(TECH_JOKE)
 
+    draw_match = re.search(r"(?:dibuja|draw|pinta|dibujame)\s+(.+?)[\?\s]*$", lower)
+    if draw_match:
+        thing = draw_match.group(1).strip()
+        return f"🖌️ **Voy a dibujar:** {thing}\n\n_Usa el boton de dibujo en el chat para verlo_"
+
+    # Fuentes: buscar multiples fuentes
+    fuentes_match = re.search(r"(?:fuentes?|sources?|buscar fuentes)\s*[:\-]?\s*(.+)", lower)
+    if fuentes_match:
+        query = fuentes_match.group(1).strip()
+        if query:
+            sources = search_all_sources(query)
+            if sources:
+                lines = [f"📚 **Fuentes para \"{query}\":**\n"]
+                for i, s in enumerate(sources, 1):
+                    label = s.get("source", "Desconocida")
+                    lines.append(f"**{i}. {label}:** {s.get('text', '')[:300]}...")
+                return "\n".join(lines)
+            return f"No encontre fuentes para \"{query}\""
+        return "Especifica que buscar: `fuentes: python`"
+
     if lower.startswith("aprende:"):
         return learn_fact(text, memory)
+
+    if lower.startswith("calcula:"):
+        expr = text[len("calcula:"):].strip()
+        # Try our math solvers
+        for solver in [solve_basic_equation, solve_basic_math, solve_advanced_math, solve_algebra, solve_logarithms]:
+            result = solver(expr)
+            if result:
+                return result
+        # Fallback: try to evaluate with safe eval
+        try:
+            safe = re.sub(r"(\d+)x\^?2", r"\1**2", expr.lower())
+            safe = re.sub(r"(\d+)x", r"\1*", safe)
+            safe = re.sub(r"(\d+)\s*=\s*(\d+)", r"", safe)
+            safe_num = re.sub(r"[^\d\s\+\-\*/\(\)\.\%]", "", safe)
+            if safe_num.strip():
+                from math import log, log10, sqrt
+                val = eval(safe_num, {"__builtins__": {}}, {"log": log, "log10": log10, "sqrt": sqrt})
+                return f"Resultado: {_format_num(val)}"
+        except:
+            pass
+        return f"Procesando: {expr}"
+
+    algebra = solve_algebra(text)
+    if algebra:
+        return algebra
+
+    log_result = solve_logarithms(text)
+    if log_result:
+        return log_result
+
+    if lower.startswith("traduce:"):
+        match = re.search(r"traduce:\s*(.+?)(?:\s*a\s+(ingles|ingles|english|espanol|español|es|en|fr|pt|it|de|ja|zh|ko|ru))?\s*$", lower, re.IGNORECASE)
+        if match:
+            txt = match.group(1).strip()
+            tgt = match.group(2).strip().lower() if match.group(2) else "en"
+            lang_map = {
+                "espanol": "es", "español": "es", "es": "es",
+                "ingles": "en", "english": "en", "en": "en",
+                "frances": "fr", "french": "fr", "fr": "fr",
+                "portugues": "pt", "portuguese": "pt", "pt": "pt",
+                "italiano": "it", "italian": "it", "it": "it",
+                "aleman": "de", "german": "de", "de": "de",
+                "japones": "ja", "japanese": "ja", "ja": "ja",
+                "chino": "zh", "chinese": "zh", "zh": "zh",
+                "coreano": "ko", "korean": "ko", "ko": "ko",
+                "ruso": "ru", "russian": "ru", "ru": "ru",
+            }
+            target = lang_map.get(tgt, tgt)
+            if len(target) > 5:
+                return f"Idioma no reconocido: {tgt}. Usa: `traduce: texto a ingles`"
+            result = translate_text(txt, target)
+            if result:
+                flag_map = {"es": "🇪🇸", "en": "🇬🇧", "fr": "🇫🇷", "pt": "🇵🇹", "it": "🇮🇹", "de": "🇩🇪", "ja": "🇯🇵", "zh": "🇨🇳", "ko": "🇰🇷", "ru": "🇷🇺"}
+                flag = flag_map.get(target, "🌐")
+                return f"**{flag} Traducción al {tgt}:**\n\n> {html_lib.escape(result)}"
+            return "No pude traducir eso. Intenta de nuevo."
+        return "Usa: `traduce: texto a ingles` o `traduce: hello a espanol`"
 
     equation = solve_basic_equation(text)
     if equation:
@@ -1972,54 +2830,60 @@ def extract_search_term(text):
     return " ".join(filtered) if filtered else cleaned.strip()
 
 
-def web_search_and_respond(text, memory):
+def web_search_and_respond(text, memory, auto_images=True, deep_search=False):
     search_term = extract_search_term(text)
     if not search_term or len(search_term) < 2:
         return None
 
-    wiki_data = search_wikipedia(search_term)
-    if wiki_data and wiki_data.get("extract"):
-        memory.setdefault("learned", {})[normalize_text(search_term)] = wiki_data["extract"][:500]
-        save_memory(memory)
-        return format_wiki_result(wiki_data)
+    all_sources = search_all_sources(search_term)
+    if not all_sources:
+        return None
 
-    search_results = search_wikipedia_search(search_term)
-    if search_results:
-        lines = [f"**Resultados para \"{search_term}\":**\n"]
-        for r in search_results[:3]:
-            lines.append(f"- **{r['title']}**: {r['snippet'][:120]}...")
-        lines.append(f"\nPuedo buscar mas detalles si me dices el tema exacto.")
-        return "\n".join(lines)
+    # Save to memory
+    memory.setdefault("learned", {})[normalize_text(search_term)] = all_sources[0]["text"][:500]
+    save_memory(memory)
 
-    return None
+    # Combine ALL sources with images
+    lines = []
+    added_image = False
+    for src in all_sources:
+        img = src.get("image")
+        if img and auto_images and not added_image:
+            lines.append(f'<img src="{img}" style="width:100%;max-width:350px;border-radius:12px;margin-bottom:12px;">')
+            added_image = True
+
+    lines.append(f"📚 **Fuentes para: {search_term.title()}**\n")
+
+    max_sources = 5 if deep_search else 3
+    for i, src in enumerate(all_sources[:max_sources], 1):
+        label = src.get("source", "Desconocida")
+        text_src = src.get("text", "")[:400]
+        title = src.get("title")
+        url = src.get("url")
+        header = f"**{i}. {label}:**"
+        if title:
+            header += f" *{title}*"
+        lines.append(f"{header}\n{text_src}")
+        if url:
+            lines.append(f"[Fuente]({url})")
+        lines.append("")
+
+    # Add Wikipedia search results if we have none
+    if not any(s.get("source") == "Wikipedia" for s in all_sources):
+        search_results = search_wikipedia_search(search_term, limit=5 if deep_search else 2)
+        if search_results:
+            lines.append(f"**Más resultados de Wikipedia:**")
+            for r in search_results[:3 if deep_search else 2]:
+                lines.append(f"- **{r['title']}**: {r['snippet'][:100]}...")
+
+    if deep_search:
+        lines.append(f"\n*Búsqueda profunda activada - se mostraron más fuentes de lo normal*")
+
+    lines.append("---\n📌 *¿Quieres que profundice en algo específico?*")
+    return "\n".join(lines)
 
 
-def generate_smart_response(text, history, memory):
-    lower = normalize_text(text)
 
-    known = extract_known_answer(text, memory)
-    if known:
-        return f"{known}"
-
-    web_result = web_search_and_respond(text, memory)
-    if web_result:
-        return web_result
-
-    if history:
-        recent = [h for h in history[-5:] if h.get("rol") == "ai" and len(h.get("texto", "")) > 20]
-        if recent:
-            return (
-                f"No encontre una respuesta exacta en mi base de conocimiento para **\"{text}\"**. "
-                f"Tambien busque en la red pero no encontre algo relevante. "
-                f"Puedo aprenderla con el comando: `aprende: {text} = tu definicion`."
-            )
-
-    return (
-        f"No tengo una respuesta exacta para **\"{text}\"** aun, "
-        f"pero intente buscar en la red. Puedes ensenarmelo con: "
-        f"`aprende: {text} = definicion`\n\n"
-        f"O prueba preguntarme sobre tecnologia, programacion, hacer una suma, o decirme **ayuda**."
-    )
 
 
 def format_reasoned_answer(answer, question, modelo="flask"):
@@ -2037,70 +2901,250 @@ def format_reasoned_answer(answer, question, modelo="flask"):
     return answer
 
 
+def _get_last_user_topic(history):
+    """Get the last user message (non follow-up) from history"""
+    if not history:
+        return ""
+    followups = {"si", "sí", "yes", "ok", "dale", "adelante", "no", "nop", "busca",
+                 "paso a paso", "ejemplo", "ejemplos", "codigo", "código"}
+    for h in reversed(history):
+        if h.get("rol") == "user":
+            msg = normalize_text(h.get("texto", ""))
+            if msg not in followups:
+                return h.get("texto", "")
+    return ""
+
+
+def _last_ai_asked_sources(history):
+    """Check if last AI message asked about sources"""
+    if not history:
+        return False
+    for h in reversed(history):
+        if h.get("rol") == "ai":
+            msg = h.get("texto", "")
+            if "¿Quieres que busque fuentes" in msg:
+                return True
+            return False
+    return False
+
+
+def _apply_detail(resp, is_detail):
+    if is_detail or not resp:
+        return resp
+    lines = resp.split("\n")
+    short = [l for l in lines if l.strip() and (
+        not l.strip().startswith("---") and
+        not l.strip().startswith("*") and
+        not l.strip().startswith("📌") and
+        not l.strip().startswith("✏️") and
+        "profundice" not in l.lower() and
+        "quieres que" not in l.lower() and
+        "dime" not in l.lower()
+    )]
+    return "\n".join(short[:5] + (["", "📌 *Modo conciso activado*"] if len(short) > 5 else []))
+
+
 def respond_with_flask_model(message, history, memory, user):
     text = message.strip()
     lower = normalize_text(text)
+    raw_name = (user.get("name") or "").strip()
+    user_name = raw_name.split("@")[0].split()[0] if raw_name else ""
+    auto_sources = session.get("auto_sources", False)
+    auto_images = session.get("auto_images", True)
+    deep_search = session.get("deep_search", False)
+    detallado = session.get("detallado", True)
+    asked_sources = _last_ai_asked_sources(history)
 
     if not text:
-        return "Escribe una pregunta y te dare una explicacion detallada paso a paso."
+        greeting = f"{user_name}! " if user_name else ""
+        return f"{greeting}Escribe una pregunta y te dare una explicacion detallada paso a paso."
 
+    # === FOLLOW-UP: "si" after being asked about sources → search all sources ===
+    if asked_sources and lower in ["si", "sí", "yes", "ok", "dale", "adelante", "busca"]:
+        topic = _get_last_user_topic(history)
+        if topic:
+            web_result = web_search_and_respond(topic, memory, auto_images, deep_search)
+            if web_result:
+                return (
+                    f"🌐 **Fuentes web para \"{topic}\":**\n\n{web_result}\n\n"
+                    f"---\n✏️ *¿Quieres que profundice? Dime 'paso a paso', 'ejemplo', 'código'.*"
+                )
+            return f"No encontré fuentes web para **\"{topic}\"**. Prueba con otro tema."
+        return "¿Sobre qué tema quieres que busque fuentes?"
+
+    # === FOLLOW-UP: "no" after being asked about sources → local only ===
+    if asked_sources and lower in ["no", "nop", "no gracias", "no quiero", "no busques", "no hace falta"]:
+        topic = _get_last_user_topic(history)
+        if topic:
+            concept_key = reasoning_search(topic)
+            if concept_key:
+                data = CONCEPT_DB[concept_key]
+                resp = f"📚 **{topic.title()}**\n\n"
+                resp += f"**¿Qué es?** {data.get('what', '')}\n\n"
+                if data.get("how"):
+                    resp += f"**¿Cómo funciona?** {data['how']}\n\n"
+                if data.get("purpose"):
+                    resp += f"**¿Para qué sirve?** {data['purpose']}\n\n"
+                if data.get("examples"):
+                    resp += "**Ejemplos:**\n" + "\n".join(f"- `{e}`" for e in data["examples"][:3])
+                return resp
+            known = extract_known_answer(topic, memory)
+            if known:
+                return f"📚 **{topic.title()}:**\n\n{known}"
+        return "De acuerdo. Pregúntame sobre otro tema o dime 'paso a paso', 'ejemplo', 'código'."
+
+    # === FOLLOW-UP: structured (paso a paso, ejemplo, codigo) ===
+    if lower in ["paso a paso", "ejemplo", "ejemplos", "codigo", "código", "caso uso", "casos de uso"]:
+        last_topic = _get_last_user_topic(history)
+        if last_topic:
+            concept_key = reasoning_search(last_topic)
+            if "ejemplo" in lower:
+                if concept_key and CONCEPT_DB[concept_key].get("examples"):
+                    exs = CONCEPT_DB[concept_key]["examples"]
+                    return f"💡 **Ejemplos prácticos de {concept_key}:**\n\n" + "\n".join(f"- `{e}`" for e in exs)
+                web_result = web_search_and_respond(last_topic, memory, auto_images, deep_search)
+                if web_result:
+                    return f"💡 **Ejemplos desde la web para {last_topic}:**\n\n{web_result}"
+            elif "codigo" in lower:
+                if concept_key and CONCEPT_DB[concept_key].get("examples"):
+                    exs = CONCEPT_DB[concept_key]["examples"]
+                    return f"💻 **Código de {concept_key}:**\n\n" + "\n".join(f"- `{e}`" for e in exs)
+                web_result = web_search_and_respond(last_topic, memory, auto_images, deep_search)
+                if web_result:
+                    return f"💻 **Referencias de código para {last_topic}:**\n\n{web_result}"
+            if concept_key:
+                data = CONCEPT_DB[concept_key]
+                resp = f"📚 **Guía paso a paso: {concept_key.title()}**\n\n"
+                resp += f"**1. ¿Qué es?** {data.get('what', 'Concepto fundamental.')}\n\n"
+                if data.get("how"):
+                    resp += f"**2. ¿Cómo funciona?** {data['how']}\n\n"
+                if data.get("purpose"):
+                    resp += f"**3. ¿Para qué sirve?** {data['purpose']}\n\n"
+                if data.get("examples"):
+                    resp += "**4. Ejemplos prácticos:**\n"
+                    for ex in data["examples"][:3]:
+                        resp += f"   - `{ex}`\n"
+                    resp += "\n"
+                if data.get("difficulty"):
+                    resp += f"**5. Nivel:** {data['difficulty']}\n\n"
+                resp += "---\n✏️ *¿Quieres ver código real, casos de uso, o comparar con algo similar?*"
+                return resp
+            web_result = web_search_and_respond(last_topic, memory, auto_images, deep_search)
+            if web_result:
+                return f"📚 **Estructurando información para {last_topic}:**\n\n{web_result}"
+            return f"🤔 No tengo información estructurada para **\"{last_topic}\"**."
+        return "¿Sobre qué tema quieres la explicación?"
+
+    # === FOLLOW-UP: si/yes general deepening ===
+    if lower in ["si", "sí", "yes", "dale", "adelante", "continua", "continúa", "mas", "más", "profundiza"]:
+        last_topic = _get_last_user_topic(history)
+        if last_topic:
+            reasoning = reason_about(last_topic, memory)
+            if reasoning:
+                return f"🔍 **Profundizando en: {last_topic}**\n\n" + reasoning
+            web_result = web_search_and_respond(last_topic, memory, auto_images, deep_search)
+            if web_result:
+                return f"🌐 **Más información sobre \"{last_topic}\":**\n\n{web_result}"
+            return f"🤔 No tengo más información sobre **\"{last_topic}\"**."
+
+    # === SIMPLE INTENTS (skip source asking) ===
     intent = detect_intent(text, memory)
     if intent:
         if "<div class=" in intent:
             return intent
+        if user_name and any(w in lower for w in ["hola", "buenos", "buenas", "gracias"]):
+            intent = intent.replace("Hola!", f"Hola {user_name}!").replace("Bienvenido", f"Bienvenido {user_name}")
         return f"{intent}\n\n💡 *Si quieres profundizar mas, solo pidemelo.*"
 
     if "quien eres" in lower:
-        return "Soy **ANS Flask**, el modo de razonamiento profundo de ANS AI. Mi proposito es explicarte conceptos de forma educativa, con pasos claros y ejemplos. Creado por **Aldrin Nicolas Salazar Avilas**."
+        name_part = f", {user_name}" if user_name else ""
+        return f"Soy **ANS Flask{name_part}**, el modo de razonamiento profundo de ANS AI. Creado por **Aldrin Nicolas Salazar Avilas**."
 
     if "creador" in lower:
-        return "Mi creador es **Aldrin Nicolas Salazar Avilas**. El diseno este modo para que pudieras aprender tecnologia de forma clara y estructurada."
+        return "Mi creador es **Aldrin Nicolas Salazar Avilas**."
 
-    reasoning = reason_about(text, memory)
-    if reasoning:
-        steps = [
-            "**Paso 1:** Analicemos el concepto",
-            "**Paso 2:** Entendamos como funciona",
-            "**Paso 3:** Veamos un ejemplo practico",
-        ]
-        return f"{' | '.join(steps)}\n\n{reasoning}"
+    # === MAIN FLOW: Ask about sources for EVERY question ===
+    search_term = extract_search_term(text)
+    if not search_term:
+        search_term = text[:50]
 
+    if auto_sources:
+        # Auto mode: combine local + web sources
+        web_result = web_search_and_respond(text, memory, auto_images, deep_search)
+        concept_key = reasoning_search(text)
+        if concept_key:
+            data = CONCEPT_DB[concept_key]
+            local_info = f"📚 **{concept_key.title()}:**\n{data.get('what', '')}\n"
+            if data.get("purpose"):
+                local_info += f"\n**Para qué sirve:** {data['purpose']}\n"
+            if web_result:
+                return (
+                    f"🤔 **Información sobre \"{text}\":**\n\n"
+                    f"{local_info}\n"
+                    f"---\n"
+                    f"📚 **Fuentes web automáticas:**\n\n{web_result}\n\n"
+                    f"---\n✏️ *¿Quieres que profundice más?*"
+                )
+            return local_info + "\n\n---\n✏️ *¿Quieres que busque más fuentes web?*"
+        if web_result:
+            return (
+                f"🌐 **Información web sobre \"{text}\":**\n\n{web_result}\n\n"
+                f"---\n✏️ *¿Te gustaría que lo explique paso a paso?*"
+            )
+        reasoning = reason_about(text, memory)
+        if reasoning:
+            return f"🧠 **Análisis:**\n\n{reasoning}"
+        known = extract_known_answer(text, memory)
+        if known:
+            return f"📚 **Conocimiento previo:**\n\n{known}"
+        return f"🤔 No encontré información sobre **\"{text}\"** en ninguna fuente."
+
+    # === AUTO-SOURCES OFF: Ask user if they want sources ===
+    concept_key = reasoning_search(text)
     known = extract_known_answer(text, memory)
-    if known:
-        return f"Segun mi base de conocimiento:\n\n{known}\n\n*Quieres que busque mas informacion?*"
+    reasoning = reason_about(text, memory)
 
-    web_result = web_search_and_respond(text, memory)
-    if web_result:
-        return f"He buscado en la red para darte una respuesta completa:\n\n{web_result}"
-
-    return (
-        f"No encontre informacion sobre **\"{text}\"** en mi base. "
-        f"Puedo aprenderlo si me ensenas con:\n\n"
-        f"`aprende: {text} = definicion`\n\n"
-        f"O prueba con otro tema de programacion, tecnologia o matematicas."
-    )
+    if concept_key or known or reasoning:
+        return (
+            f"🤔 Tengo información sobre **\"{text}\"** en mi base local.\n\n"
+            f"📚 **¿Quieres que busque fuentes web (Wikipedia, DuckDuckGo, +100 curiosidades) para complementar?**\n\n"
+            f"Responde **\"si\"** para buscar fuentes, o **\"no\"** para que responda con mi conocimiento local."
+        )
+    else:
+        return (
+            f"🤔 No tengo **\"{text}\"** en mi base local.\n\n"
+            f"🌐 **¿Quieres que busque fuentes web (Wikipedia, DuckDuckGo, +100 datos) sobre esto?**\n\n"
+            f"Responde **\"si\"** para buscar fuentes, o **\"no\"** para que intente responder con mi base de conocimiento."
+        )
 
 
 def respond_with_gapi_model(message, history, memory, user):
     text = message.strip()
     lower = normalize_text(text)
+    raw_name = (user.get("name") or "").strip()
+    user_name = raw_name.split("@")[0].split()[0] if raw_name else ""
 
     if not text:
         return "Escribe algo."
 
     intent = detect_intent(text, memory)
     if intent:
+        if "hola" in lower or "buenos" in lower:
+            return f"Que hay {user_name}!" if user_name else "Que hay."
         return intent
 
     if "quien eres" in lower:
-        return "Gapi. Modo rapido. Creado por Aldrin Nicolas Salazar Avilas."
+        return "Gapi. Modo tecnico rapido. Creado por Aldrin Nicolas Salazar Avilas."
 
     if "hola" == lower:
-        return "Que hay."
+        return f"Que hay {user_name}." if user_name else "Que hay."
 
     reasoning = reason_about(text, memory)
     if reasoning:
-        return reasoning
+        # Gapi returns concise version
+        lines = reasoning.split('\n')
+        concise = [l for l in lines if l.strip() and not l.startswith('*')]
+        return '\n'.join(concise[:5])
 
     known = extract_known_answer(text, memory)
     if known:
@@ -2110,7 +3154,7 @@ def respond_with_gapi_model(message, history, memory, user):
     if web_result:
         return web_result
 
-    return f"No tengo info de \"{text}\". Usa: `aprende: {text} = definicion`"
+    return f"No info sobre \"{text}\". Usa: `aprende: {text} = definicion`"
 
 
 def respond_with_modify_model(message, history, memory, user):
@@ -2188,6 +3232,11 @@ def ai_chat():
         historial = data.get("historial", [])
         mensaje_nuevo = data.get("mensaje", "")
         modelo = normalize_text(data.get("modelo", "flask"))
+        chat_id = data.get("chat_id", "")
+        auto_sources = data.get("auto_sources", False)
+        auto_images = data.get("auto_images", True)
+        deep_search = data.get("deep_search", False)
+        detallado = data.get("detallado", True)
         memory = load_memory()
         user = session.get("user", {})
         user_email = user.get("email", "")
@@ -2198,15 +3247,34 @@ def ai_chat():
         if modelo == "gapi":
             respuesta = respond_with_gapi_model(mensaje_nuevo, historial, memory, user)
             modelo_nombre = MODEL_INFO["gapi"]["name"]
+            source = "gapi"
         elif modelo == "modify":
             respuesta = respond_with_modify_model(mensaje_nuevo, historial, memory, user)
             modelo_nombre = MODEL_INFO["modify"]["name"]
+            source = "modify"
         else:
+            session["auto_sources"] = auto_sources
+            session["auto_images"] = auto_images
+            session["deep_search"] = deep_search
+            session["detallado"] = detallado
             respuesta = respond_with_flask_model(mensaje_nuevo, historial, memory, user)
+            respuesta = _apply_detail(respuesta, detallado)
             modelo_nombre = MODEL_INFO["flask"]["name"]
+            if "Fuentes web" in respuesta or "fuentes web" in respuesta.lower() or "Fuentes para" in respuesta:
+                source = "web"
+            elif "¿Quieres que busque fuentes" in respuesta or "¿Quieres que busque en la web" in respuesta:
+                source = "ask"
+            elif "Wikipedia" in respuesta:
+                source = "wikipedia"
+            elif "DuckDuckGo" in respuesta:
+                source = "duckduckgo"
+            elif "Curiosidad" in respuesta or "Datos" in respuesta:
+                source = "facts"
+            else:
+                source = "local"
 
         respuesta = format_reasoned_answer(respuesta, mensaje_nuevo, modelo)
-        return jsonify({"respuesta": respuesta, "modelo": modelo_nombre})
+        return jsonify({"respuesta": respuesta, "modelo": modelo_nombre, "source": source})
 
     except Exception as e:
         print(f"Error critico en el nucleo: {e}")

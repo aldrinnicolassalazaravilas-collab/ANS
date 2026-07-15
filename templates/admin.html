@@ -102,6 +102,7 @@
             <div class="stat-card"><div class="stat-number">{{ concepts }}</div><div class="stat-label">Conceptos base</div></div>
             <div class="stat-card"><div class="stat-number">{{ memory }}</div><div class="stat-label">Aprendido</div></div>
             <div class="stat-card"><div class="stat-number">{{ history_files|length }}</div><div class="stat-label">Historiales</div></div>
+            <div class="stat-card"><div class="stat-number">{{ facts_count }}</div><div class="stat-label">Curiosidades</div></div>
             <div class="stat-card"><div class="stat-number">{{ blocked|length }}</div><div class="stat-label">Bloqueados</div></div>
         </div>
 
@@ -111,6 +112,7 @@
             <button class="tab" onclick="cambiarTab('historial')">Historial</button>
             <button class="tab" onclick="cambiarTab('modelos')"><span class="model-label model-flask">Flask</span> <span class="model-label model-gapi">Gapi</span> <span class="model-label model-modify">Modify</span></button>
             <button class="tab" onclick="cambiarTab('bloqueados')">Bloqueados</button>
+            <button class="tab" onclick="cambiarTab('mensajes')">Mensajes ({{ messages|length }})</button>
         </div>
 
         <div class="section active" id="tab-usuarios">
@@ -208,6 +210,26 @@
                 {% endfor %}
                 {% else %}
                 <div class="empty">No hay usuarios bloqueados</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section" id="tab-mensajes">
+            <div class="section-title">Mensajes de Usuarios <span class="badge badge-orange">{{ messages|length }}</span></div>
+            <div class="card">
+                {% if messages %}
+                {% for m in messages|reverse %}
+                <div class="memory-item" style="flex-direction:column;align-items:stretch;">
+                    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                        <span><strong style="color:var(--accent);">{{ m.name }}</strong>{% if m.email %} <span style="color:var(--muted);font-size:11px;">- {{ m.email }}</span>{% endif %}</span>
+                        <span class="badge badge-purple">{{ m.type }}</span>
+                    </div>
+                    <div style="color:var(--text);margin-top:4px;">{{ m.message }}</div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px;">{{ m.date[:19] }}</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty">No hay mensajes aun</div>
                 {% endif %}
             </div>
         </div>
