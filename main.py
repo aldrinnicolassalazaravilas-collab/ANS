@@ -121,7 +121,10 @@ def load_users():
 def save_users(users):
     if kv_available():
         kv_set("ans_users", json.dumps(users))
-    USER_FILE.write_text(json.dumps(users, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        USER_FILE.write_text(json.dumps(users, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def load_user_history(user_id, modelo):
@@ -153,10 +156,13 @@ def save_user_history(user_id, modelo, history):
         safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)
         key = f"ans_hist_{safe_id}_{modelo}"
         kv_set(key, json.dumps(history[-200:]))
-    HISTORY_DIR.mkdir(exist_ok=True)
-    safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)
-    path = HISTORY_DIR / f"{safe_id}_{modelo}.json"
-    path.write_text(json.dumps(history[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        HISTORY_DIR.mkdir(exist_ok=True)
+        safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)
+        path = HISTORY_DIR / f"{safe_id}_{modelo}.json"
+        path.write_text(json.dumps(history[-200:], ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def login_required(f):
@@ -1312,41 +1318,44 @@ def google_login():
 
 @app.route("/auth/google/callback")
 def google_callback():
-    code = request.args.get("code")
-    if not code:
-        return redirect(url_for("login"))
+    try:
+        code = request.args.get("code")
+        if not code:
+            return redirect(url_for("login"))
 
-    token_data = exchange_code_for_token(code)
-    if not token_data:
-        return redirect(url_for("login"))
+        token_data = exchange_code_for_token(code)
+        if not token_data:
+            return redirect(url_for("login"))
 
-    user_info = get_google_user_info(token_data.get("access_token"))
-    if not user_info:
-        return redirect(url_for("login"))
+        user_info = get_google_user_info(token_data.get("access_token"))
+        if not user_info:
+            return redirect(url_for("login"))
 
-    users = load_users()
-    google_id = user_info.get("id")
-    email = user_info.get("email", "")
-    name = user_info.get("name", "")
-    picture = user_info.get("picture", "")
+        users = load_users()
+        google_id = user_info.get("id")
+        email = user_info.get("email", "")
+        name = user_info.get("name", "")
+        picture = user_info.get("picture", "")
 
-    if google_id not in users.get("users", {}):
-        users.setdefault("users", {})[google_id] = {
+        if google_id not in users.get("users", {}):
+            users.setdefault("users", {})[google_id] = {
+                "email": email,
+                "name": name,
+                "picture": picture,
+                "created": datetime.now().isoformat(),
+            }
+            save_users(users)
+
+        session["user"] = {
+            "id": google_id,
             "email": email,
             "name": name,
             "picture": picture,
-            "created": datetime.now().isoformat(),
         }
-        save_users(users)
 
-    session["user"] = {
-        "id": google_id,
-        "email": email,
-        "name": name,
-        "picture": picture,
-    }
-
-    return redirect(url_for("hm"))
+        return redirect(url_for("hm"))
+    except Exception:
+        return redirect(url_for("login"))
 
 
 def exchange_code_for_token(code):
@@ -1441,7 +1450,10 @@ def load_memory():
 def save_memory(memory):
     if kv_available():
         kv_set("ans_memory", json.dumps(memory))
-    MEMORY_FILE.write_text(json.dumps(memory, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        MEMORY_FILE.write_text(json.dumps(memory, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def solve_basic_equation(text):
