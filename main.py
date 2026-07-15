@@ -952,6 +952,7 @@ REASONING_PATTERNS = [
     (r"^(?:cuales?\s+son?\s+)?(?:las?\s+)?diferencias?\s+entre\s+(.+?)\s+y\s+(.+?)[\?\s]*$", "differences"),
     (r"^que\s+diferencia\s+hay\s+entre\s+(.+?)\s+y\s+(.+?)[\?\s]*$", "differences"),
     (r"^es\s+(.+?)\s+(?:dificil|complicado|complejo|facil|rapido|lento)[\?\s]*$", "difficulty"),
+    (r"^(?:que\s+tan\s+)?(?:dificil|complicado|complejo|facil)\s+(?:es\s+)?(?:aprender|entender|usar|hacer)\s+(.+?)[\?\s]*$", "difficulty"),
     (r"^(?:cual|que)\s+lenguaje\s+(?:es\s+)?(?:mejor|ideal|bueno|recomendado)\s+(?:para|para\s+aprender|para\s+hacer)\s+(.+?)[\?\s]*$", "recommend"),
     (r"^(?:como\s+)?(?:puedo|puedo)\s+(.+?)\s+paso\s+a\s+paso[\?\s]*$", "step_by_step"),
 ]
@@ -1963,6 +1964,7 @@ def extract_search_term(text):
         "yo", "tu", "nosotros", "ellos", "esto", "eso", "eso",
         "con", "sin", "entre", "hasta", "desde", "por", "en",
         "escribir", "leer", "crear", "usar", "saber",
+        "dificil", "complicado", "complejo", "facil", "aprender",
     ]
     cleaned = re.sub(r"[?¿!¡.,;:]", "", lower)
     words = cleaned.split()
