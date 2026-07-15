@@ -871,7 +871,7 @@
                         <li>Analogias y contexto</li>
                         <li>Preguntas de seguimiento</li>
                     </ul>
-                    <div class="model-note"><strong>Solo creador</strong></div>
+                    <div class="model-note"><strong>Recomendado</strong> para aprender</div>
                 </button>
 
                 <button class="model-card" data-model="gapi" onclick="seleccionarModelo('gapi')">
@@ -889,7 +889,7 @@
                         <li>Ejemplos practicos</li>
                         <li>Respuestas cortas</li>
                     </ul>
-                    <div class="model-note"><strong>Solo creador</strong></div>
+                    <div class="model-note"><strong>Ideal</strong> para ir al grano</div>
                 </button>
 
                 <button class="model-card" data-model="modify" onclick="seleccionarModelo('modify')">
@@ -943,7 +943,9 @@
                         {% endif %}
                         {{ user.name or 'Usuario' }}
                     </span>
+                    {% if is_owner %}
                     <a href="/admin" class="small-btn" style="text-decoration:none;">Admin</a>
+                    {% endif %}
                     <button class="small-btn" onclick="volverASeleccion()">Cambiar modelo</button>
                     <button class="small-btn danger" onclick="reiniciarMemoria()">Limpiar chat</button>
                     <a href="/logout" class="small-btn danger" style="text-decoration:none;">Salir</a>

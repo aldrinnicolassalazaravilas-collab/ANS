@@ -1294,23 +1294,84 @@ def admin():
     user_list = list(users.get("users", {}).values())
     concept_count = len(KNOWLEDGE_BASE)
     memory_count = len(learned)
+    blocked = memory.get("blocked", [])
     history_files = []
     if HISTORY_DIR.exists():
-        for f in sorted(HISTORY_DIR.iterdir(), reverse=True)[:20]:
+        for f in sorted(HISTORY_DIR.iterdir(), reverse=True)[:50]:
             try:
                 data = json.loads(f.read_text(encoding="utf-8"))
                 history_files.append({"name": f.name, "size": len(data), "updated": datetime.fromtimestamp(f.stat().st_mtime).isoformat()})
             except Exception:
                 history_files.append({"name": f.name, "size": 0, "updated": ""})
-    return render_template("admin.html", users=user_list, concepts=concept_count, memory=memory_count, history_files=history_files, memory_items=list(learned.items())[:50])
+    return render_template("admin.html", users=user_list, concepts=concept_count, memory=memory_count, history_files=history_files, memory_items=list(learned.items())[:100], blocked=blocked)
+
+
+@app.route("/admin/delete-memory-item", methods=["POST"])
+@login_required
+@owner_required
+def delete_memory_item():
+    data = request.get_json(silent=True) or {}
+    key = data.get("key", "")
+    if key:
+        memory = load_memory()
+        memory.get("learned", {}).pop(key, None)
+        save_memory(memory)
+    return jsonify({"ok": True})
 
 
 @app.route("/admin/clear-memory", methods=["POST"])
 @login_required
 @owner_required
 def clear_memory():
-    save_memory({"learned": {}})
+    save_memory({"learned": {}, "blocked": []})
     return jsonify({"ok": True})
+
+
+@app.route("/admin/block-user", methods=["POST"])
+@login_required
+@owner_required
+def block_user():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "")
+    if email:
+        memory = load_memory()
+        memory.setdefault("blocked", [])
+        if email not in memory["blocked"]:
+            memory["blocked"].append(email)
+        save_memory(memory)
+    return jsonify({"ok": True})
+
+
+@app.route("/admin/unblock-user", methods=["POST"])
+@login_required
+@owner_required
+def unblock_user():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", "")
+    if email:
+        memory = load_memory()
+        memory.setdefault("blocked", [])
+        memory["blocked"] = [e for e in memory["blocked"] if e != email]
+        save_memory(memory)
+    return jsonify({"ok": True})
+
+
+@app.route("/admin/model-history/<modelo>")
+@login_required
+@owner_required
+def admin_model_history(modelo):
+    users = load_users()
+    histories = []
+    if HISTORY_DIR.exists():
+        for f in HISTORY_DIR.iterdir():
+            if modelo in f.name:
+                try:
+                    data = json.loads(f.read_text(encoding="utf-8"))
+                    user_id = f.name.replace(f"_{modelo}.json", "").replace("_", " ")
+                    histories.append({"user": user_id, "messages": len(data), "file": f.name, "content": data[-20:]})
+                except Exception:
+                    pass
+    return jsonify(histories)
 
 
 @app.route("/admin/delete-history", methods=["POST"])
@@ -1534,7 +1595,7 @@ def asistente():
 @login_required
 def hm():
     user = session.get("user", {})
-    return render_template("hm.html", user=user)
+    return render_template("hm.html", user=user, is_owner=is_owner())
 
 
 def normalize_text(text):
@@ -2056,24 +2117,45 @@ def respond_with_modify_model(message, history, memory, user):
     user_name = user.get("name", "Alguien")
 
     if not text:
-        return "Di algo y lo aprendere!"
+        return "Hola! Soy Modify Code. Puedo conversar contigo y si quieres ensenarme algo nuevo, solo dime: `aprende: tema = definicion`"
 
     if lower.startswith("aprende:"):
         result = learn_fact(text, memory)
-        return f"{result}\n\n📝 *Anotado gracias a {user_name}!*"
+        return f"{result}\n\n📝 *Gracias {user_name}, lo recordare!*"
+
+    if random.random() < 0.08 and len(memory.get("learned", {})) > 0:
+        sample = random.choice(list(memory["learned"].items()))
+        return f"Sabes? Alguien me enseno que **{sample[0]}** es: {sample[1][:100]}\n\n" + random.choice([
+            "Que opinas de eso?", "Te parece correcto?", "Quieres agregar algo mas?"
+        ])
 
     intent = detect_intent(text, memory)
     if intent:
-        memory.setdefault("learned", {})[f"pregunta_{normalize_text(text)[:30]}"] = intent
-        save_memory(memory)
         return intent
 
     if "quien eres" in lower:
-        return (
-            "Soy **Modify Code**, un modelo que aprende de cada conversacion. "
-            "Todo lo que me dices lo guardo para mejorar. "
-            "Cuantos mas me hables, mas inteligente me vuelvo."
-        )
+        return "Soy **Modify Code**, un asistente conversacional que aprende solo cuando me ensenas. Uso el comando `aprende: concepto = definicion` para guardar conocimiento nuevo."
+
+    if "hola" == lower or "buenos" in lower or "buenas" in lower:
+        return random.choice([
+            f"Hola {user_name}! Como estas hoy?",
+            f"Que tal {user_name}! En que puedo ayudarte?",
+            f"Saludos {user_name}! Dime en que andas trabajando.",
+        ])
+
+    if "gracias" in lower:
+        return random.choice([
+            "De nada! Para eso estoy.",
+            "Un placer ayudarte.",
+            "Cuando quieras!",
+        ])
+
+    if "como estas" in lower:
+        return f"Excelente! Listo para conversar. Tu como estas {user_name}?"
+
+    reasoning = reason_about(text, memory)
+    if reasoning:
+        return reasoning
 
     known = extract_known_answer(text, memory)
     if known:
@@ -2081,16 +2163,19 @@ def respond_with_modify_model(message, history, memory, user):
 
     web_result = web_search_and_respond(text, memory)
     if web_result:
-        memory.setdefault("learned", {})[f"web_{normalize_text(text)[:30]}"] = web_result[:200]
-        save_memory(memory)
-        return f"{web_result}\n\n🌍 *Informacion guardada en mi memoria.*"
+        return web_result
 
-    memory.setdefault("learned", {})[f"nuevo_{normalize_text(text)[:30]}_{random.randint(100,999)}"] = f"Preguntado por {user_name}: {text}"
-    save_memory(memory)
+    context_tip = ""
+    if history:
+        last_ai = [h for h in history[-3:] if h.get("rol") == "ai"]
+        if last_ai:
+            context_tip = "\n\n💬 *Siguiendo nuestra conversacion...*"
+
     return (
-        f"**\"{text}\"** — No se que es aun, pero ya lo recorde!\n\n"
-        f"Gracias a **{user_name}**, si alguien mas pregunta sobre esto, podre responder.\n\n"
-        f"📚 *Datos guardados en mi memoria colectiva.*"
+        f"Interesante! No tengo informacion sobre **\"{text}\"** aun.\n\n"
+        f"Si quieres que lo aprenda, dime:\n"
+        f"`aprende: {text} = lo que quieras que sepa`\n\n"
+        f"O preguntame sobre otro tema!{context_tip}"
     )
 
 
@@ -2103,9 +2188,10 @@ def ai_chat():
         modelo = normalize_text(data.get("modelo", "flask"))
         memory = load_memory()
         user = session.get("user", {})
-
-        if modelo in ("flask", "gapi") and user.get("email") != OWNER_EMAIL:
-            return jsonify({"respuesta": "Modo reservado para el creador. Usa **Modify Code** para interactuar.", "modelo": MODEL_INFO[modelo]["name"]})
+        user_email = user.get("email", "")
+        blocked = memory.get("blocked", [])
+        if user_email in blocked:
+            return jsonify({"respuesta": "Tu cuenta ha sido bloqueada por el administrador.", "modelo": "Bloqueado"}), 403
 
         if modelo == "gapi":
             respuesta = respond_with_gapi_model(mensaje_nuevo, historial, memory, user)

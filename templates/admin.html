@@ -3,115 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANS AI | Admin</title>
+    <title>ANS AI | Admin Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #070b14;
-            --panel: #0f1624;
-            --panel-2: #131c2f;
-            --line: rgba(120, 145, 180, 0.15);
-            --text: #e8eef8;
-            --muted: #98a8c3;
-            --accent: #57a6ff;
-            --accent-2: #34d399;
-            --danger: #ff6b6b;
-            --warning: #f59e0b;
-        }
+        :root { --bg: #070b14; --panel: #0f1624; --line: rgba(120,145,180,0.15); --text: #e8eef8; --muted: #98a8c3; --accent: #57a6ff; --accent-2: #34d399; --danger: #ff6b6b; --warning: #f59e0b; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: "Inter", sans-serif;
-            padding: 24px;
-        }
-        .app { max-width: 1300px; margin: 0 auto; }
+        body { background: var(--bg); color: var(--text); font-family: "Inter", sans-serif; padding: 24px; }
+        .app { max-width: 1400px; margin: 0 auto; }
 
-        .header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
-        }
-        .header h1 {
-            font-size: 26px; font-weight: 800;
-            background: linear-gradient(135deg, #57a6ff, #34d399);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+        .header h1 { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #57a6ff, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn {
-            padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line);
-            font-size: 13px; font-weight: 600; font-family: inherit;
-            cursor: pointer; transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
-        }
+
+        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
         .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
         .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(87,166,255,0.3); }
         .btn-danger { background: rgba(255,107,107,0.1); color: var(--danger); border-color: rgba(255,107,107,0.2); }
         .btn-danger:hover { background: rgba(255,107,107,0.2); }
+        .btn-warning { background: rgba(245,158,11,0.1); color: var(--warning); border-color: rgba(245,158,11,0.2); }
+        .btn-warning:hover { background: rgba(245,158,11,0.2); }
         .btn-ghost { background: rgba(255,255,255,0.03); color: var(--muted); }
         .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+        .btn-sm { padding: 6px 12px; font-size: 11px; }
 
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px; margin-bottom: 28px;
-        }
-        .stat-card {
-            background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
-            padding: 18px; text-align: center;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 28px; }
+        .stat-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; text-align: center; }
         .stat-number { font-size: 32px; font-weight: 800; color: var(--accent); }
         .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-        .section { margin-bottom: 28px; }
-        .section-title {
-            font-size: 18px; font-weight: 700; margin-bottom: 14px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .card {
-            background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; overflow-x: auto;
-        }
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .2s; }
+        .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+        .tab.active { background: var(--panel); color: var(--accent); border-color: rgba(87,166,255,0.3); }
+
+        .section { display: none; }
+        .section.active { display: block; }
+        .section-title { font-size: 18px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; overflow-x: auto; margin-bottom: 20px; }
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); }
+        th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
         td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
         tr:hover td { background: rgba(255,255,255,0.02); }
 
-        .badge {
-            display: inline-flex; padding: 3px 10px; border-radius: 999px;
-            font-size: 11px; font-weight: 600;
-        }
+        .badge { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
         .badge-green { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.15); }
         .badge-orange { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.15); }
+        .badge-red { background: rgba(255,107,107,0.1); color: var(--danger); border: 1px solid rgba(255,107,107,0.15); }
+        .badge-purple { background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid rgba(168,85,247,0.15); }
 
-        .memory-item {
-            display: flex; justify-content: space-between; gap: 12px;
-            padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
-            font-size: 13px;
-        }
-        .memory-key { color: var(--accent); font-weight: 600; min-width: 150px; }
-        .memory-val { color: var(--text); word-break: break-word; }
+        .memory-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
+        .memory-key { color: var(--accent); font-weight: 600; min-width: 160px; word-break: break-word; }
+        .memory-val { color: var(--text); word-break: break-word; flex: 1; }
 
         .empty { color: var(--muted); text-align: center; padding: 30px; font-style: italic; }
 
-        .hist-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
-        }
+        .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; flex-wrap: wrap; gap: 8px; }
+        .hist-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .hist-name { color: var(--text); font-family: monospace; }
-        .hist-size { color: var(--muted); }
+        .hist-size { color: var(--muted); font-size: 11px; }
 
-        .toast {
-            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-            padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600;
-            background: rgba(52,211,153,0.9); color: #000;
-            opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999;
-        }
+        .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; background: rgba(52,211,153,0.9); color: #000; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
         .toast.show { opacity: 1; }
-
-        @media (max-width: 640px) {
-            body { padding: 14px; }
-            .header { flex-direction: column; align-items: stretch; }
-        }
+        .toast.error { background: rgba(255,107,107,0.9); }
 
         .user-pic { width: 26px; height: 26px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+
+        .model-label { display: inline-flex; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; }
+        .model-flask { background: rgba(87,166,255,0.12); color: #57a6ff; }
+        .model-gapi { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .model-modify { background: rgba(168,85,247,0.12); color: #a855f7; }
+
+        .msg-preview { max-height: 250px; overflow-y: auto; font-size: 12px; }
+        .msg-preview div { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .msg-rol { font-weight: 600; color: var(--muted); }
+        .msg-user-rol { color: var(--accent); }
+        .msg-ai-rol { color: var(--accent-2); }
+
+        input, select { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: rgba(0,0,0,0.2); color: var(--text); font-size: 13px; font-family: inherit; outline: none; }
+        input:focus { border-color: rgba(87,166,255,0.6); }
+
+        @media (max-width: 640px) { body { padding: 14px; } .header { flex-direction: column; align-items: stretch; } }
     </style>
 </head>
 <body>
@@ -127,24 +100,38 @@
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-number">{{ users|length }}</div><div class="stat-label">Usuarios</div></div>
             <div class="stat-card"><div class="stat-number">{{ concepts }}</div><div class="stat-label">Conceptos base</div></div>
-            <div class="stat-card"><div class="stat-number">{{ memory }}</div><div class="stat-label">Datos aprendidos</div></div>
+            <div class="stat-card"><div class="stat-number">{{ memory }}</div><div class="stat-label">Aprendido</div></div>
             <div class="stat-card"><div class="stat-number">{{ history_files|length }}</div><div class="stat-label">Historiales</div></div>
+            <div class="stat-card"><div class="stat-number">{{ blocked|length }}</div><div class="stat-label">Bloqueados</div></div>
         </div>
 
-        <div class="section">
+        <div class="tabs">
+            <button class="tab active" onclick="cambiarTab('usuarios')">Usuarios</button>
+            <button class="tab" onclick="cambiarTab('memoria')">Memoria</button>
+            <button class="tab" onclick="cambiarTab('historial')">Historial</button>
+            <button class="tab" onclick="cambiarTab('modelos')"><span class="model-label model-flask">Flask</span> <span class="model-label model-gapi">Gapi</span> <span class="model-label model-modify">Modify</span></button>
+            <button class="tab" onclick="cambiarTab('bloqueados')">Bloqueados</button>
+        </div>
+
+        <div class="section active" id="tab-usuarios">
             <div class="section-title">Usuarios Registrados <span class="badge badge-green">{{ users|length }}</span></div>
             <div class="card">
                 {% if users %}
                 <table>
-                    <tr><th>Usuario</th><th>Email</th><th>Registro</th></tr>
+                    <tr><th>Usuario</th><th>Email</th><th>Registro</th><th>Accion</th></tr>
                     {% for u in users %}
                     <tr>
-                        <td>
-                            {% if u.picture %}<img src="{{ u.picture }}" class="user-pic">{% endif %}
-                            {{ u.name or 'Sin nombre' }}
-                        </td>
+                        <td>{% if u.picture %}<img src="{{ u.picture }}" class="user-pic">{% endif %}{{ u.name or 'Sin nombre' }}</td>
                         <td>{{ u.email }}</td>
                         <td>{{ u.created[:10] if u.created else 'N/A' }}</td>
+                        <td>
+                            {% if u.email not in blocked %}
+                            <button class="btn btn-sm btn-warning" onclick="bloquear('{{ u.email }}')">Bloquear</button>
+                            {% else %}
+                            <span class="badge badge-red">Bloqueado</span>
+                            <button class="btn btn-sm btn-primary" onclick="desbloquear('{{ u.email }}')">Desbloquear</button>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </table>
@@ -154,14 +141,15 @@
             </div>
         </div>
 
-        <div class="section">
+        <div class="section" id="tab-memoria">
             <div class="section-title">Memoria Aprendida <span class="badge badge-orange">{{ memory }}</span></div>
             <div class="card">
                 {% if memory_items %}
                 {% for key, val in memory_items %}
                 <div class="memory-item">
                     <span class="memory-key">{{ key }}</span>
-                    <span class="memory-val">{{ val[:120] }}{% if val|length > 120 %}...{% endif %}</span>
+                    <span class="memory-val">{{ val[:150] }}{% if val|length > 150 %}...{% endif %}</span>
+                    <button class="btn btn-sm btn-danger" onclick="borrarItem('{{ key|e }}')">Eliminar</button>
                 </div>
                 {% endfor %}
                 {% else %}
@@ -173,14 +161,18 @@
             </div>
         </div>
 
-        <div class="section">
-            <div class="section-title">Historial de Conversaciones <span class="badge badge-green">{{ history_files|length }}</span></div>
+        <div class="section" id="tab-historial">
+            <div class="section-title">Historiales Guardados <span class="badge badge-green">{{ history_files|length }}</span></div>
             <div class="card">
                 {% if history_files %}
                 {% for h in history_files %}
                 <div class="hist-item">
-                    <span class="hist-name">{{ h.name }}</span>
-                    <span class="hist-size">{{ h.size }} mensajes · {{ h.updated[:19] }}</span>
+                    <div class="hist-info">
+                        <span class="hist-name">{{ h.name }}</span>
+                        <span class="hist-size">{{ h.size }} msgs</span>
+                        <span class="hist-size">{{ h.updated[:16] }}</span>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="borrarHistorial('{{ h.name }}')">Eliminar</button>
                 </div>
                 {% endfor %}
                 <div style="margin-top:14px;display:flex;gap:8px;">
@@ -191,30 +183,124 @@
                 {% endif %}
             </div>
         </div>
+
+        <div class="section" id="tab-modelos">
+            <div class="section-title">Conversaciones por Modelo</div>
+            <div class="card">
+                <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn btn-ghost" onclick="verModelo('flask')">🧠 Flask</button>
+                    <button class="btn btn-ghost" onclick="verModelo('gapi')">⚡ Gapi</button>
+                    <button class="btn btn-ghost" onclick="verModelo('modify')">🔄 Modify Code</button>
+                </div>
+                <div id="contenido-modelo" class="empty">Selecciona un modelo para ver sus conversaciones</div>
+            </div>
+        </div>
+
+        <div class="section" id="tab-bloqueados">
+            <div class="section-title">Usuarios Bloqueados <span class="badge badge-red">{{ blocked|length }}</span></div>
+            <div class="card">
+                {% if blocked %}
+                {% for email in blocked %}
+                <div class="memory-item">
+                    <span class="memory-key">{{ email }}</span>
+                    <button class="btn btn-sm btn-primary" onclick="desbloquear('{{ email }}')">Desbloquear</button>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty">No hay usuarios bloqueados</div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <div class="toast" id="toast">Listo</div>
 
     <script>
-        function mostrarToast(msg) {
+        function mostrarToast(msg, error) {
             const t = document.getElementById('toast');
             t.textContent = msg;
+            t.className = 'toast' + (error ? ' error' : '');
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2000);
         }
 
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelector(`.tab[onclick*="${tab}"]`).classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        async function bloquear(email) {
+            if (!confirm(`Bloquear a ${email}?`)) return;
+            const r = await fetch('/admin/block-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email}) });
+            const d = await r.json();
+            mostrarToast('Usuario bloqueado');
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        async function desbloquear(email) {
+            if (!confirm(`Desbloquear a ${email}?`)) return;
+            const r = await fetch('/admin/unblock-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email}) });
+            const d = await r.json();
+            mostrarToast('Usuario desbloqueado');
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        async function borrarItem(key) {
+            if (!confirm(`Eliminar "${key}" de la memoria?`)) return;
+            const r = await fetch('/admin/delete-memory-item', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({key}) });
+            mostrarToast('Item eliminado');
+            setTimeout(() => location.reload(), 1000);
+        }
+
         async function limpiarMemoria() {
-            if (!confirm('Seguro que quieres limpiar toda la memoria aprendida?')) return;
-            await fetch('/admin/clear-memory', { method: 'POST' });
+            if (!confirm('Seguro que quieres limpiar TODA la memoria?')) return;
+            const r = await fetch('/admin/clear-memory', { method: 'POST' });
             mostrarToast('Memoria limpiada');
             setTimeout(() => location.reload(), 1000);
         }
 
-        async function limpiarTodoHistorial() {
-            if (!confirm('Seguro que quieres borrar todos los historiales?')) return;
-            await fetch('/admin/clear-all-history', { method: 'POST' });
-            mostrarToast('Historiales borrados');
+        async function borrarHistorial(name) {
+            if (!confirm(`Eliminar historial ${name}?`)) return;
+            const r = await fetch('/admin/delete-history', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({filename: name}) });
+            mostrarToast('Historial eliminado');
             setTimeout(() => location.reload(), 1000);
+        }
+
+        async function limpiarTodoHistorial() {
+            if (!confirm('Borrar TODOS los historiales?')) return;
+            const r = await fetch('/admin/clear-all-history', { method: 'POST' });
+            mostrarToast('Todos los historiales borrados');
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        async function verModelo(modelo) {
+            const div = document.getElementById('contenido-modelo');
+            div.innerHTML = '<div class="empty">Cargando...</div>';
+            try {
+                const r = await fetch('/admin/model-history/' + modelo);
+                const datos = await r.json();
+                if (datos.length === 0) {
+                    div.innerHTML = '<div class="empty">No hay conversaciones para este modelo</div>';
+                    return;
+                }
+                let html = '';
+                datos.forEach(h => {
+                    html += `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--line);">
+                        <strong>${h.user}</strong> - ${h.messages} mensajes
+                        <div class="msg-preview">`;
+                    h.content.forEach(msg => {
+                        const rol = msg.rol === 'user' ? 'Usted' : 'AI';
+                        const texto = (msg.texto || '').substring(0, 100);
+                        html += `<div><span class="msg-rol ${msg.rol === 'user' ? 'msg-user-rol' : 'msg-ai-rol'}">${rol}:</span> ${texto}${msg.texto && msg.texto.length > 100 ? '...' : ''}</div>`;
+                    });
+                    html += `</div></div>`;
+                });
+                div.innerHTML = html;
+            } catch(e) {
+                div.innerHTML = '<div class="empty">Error al cargar</div>';
+            }
         }
     </script>
 </body>
