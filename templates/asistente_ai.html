@@ -21,6 +21,8 @@
             </div>
         </div>
         <div class="wh-actions">
+            <span class="wh-tokens" id="token-badge" onclick="toggleMisiones()" title="Tus tokens" style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#fbbf24;cursor:pointer;padding:4px 8px;border-radius:8px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2)">🪙 <span id="token-count">-</span></span>
+            <button class="wh-btn" onclick="toggleMisiones()" title="Misiones diarias">🎯</button>
             <button class="wh-btn" onclick="limpiarChat()" title="Limpiar chat">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             </button>
@@ -28,6 +30,16 @@
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
         </div>
+    </div>
+
+    <!-- Misiones panel -->
+    <div id="misiones-panel" class="__mp" style="display:none;padding:12px 16px;background:rgba(251,191,36,0.04);border-bottom:1px solid rgba(251,191,36,0.1);flex-shrink:0;overflow-y:auto;max-height:200px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:700;color:#fbbf24">🎯 Misiones diarias</span>
+            <span style="font-size:11px;color:#98a8c3">🪙 <span id="token-balance">-</span></span>
+        </div>
+        <div id="misiones-list" style="display:flex;flex-direction:column;gap:4px"></div>
+        <div style="font-size:10px;color:#4a5568;margin-top:6px">Completa misiones usando las herramientas de ANS</div>
     </div>
 
     <div id="ai-messages">
@@ -289,6 +301,12 @@
 #send-btn:hover{transform:scale(1.05);box-shadow:0 6px 24px rgba(34,197,94,.35);}
 #send-btn:active{transform:scale(.95);}
 #send-btn svg{margin-left:1px;}
+.mision-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);font-size:11px}
+.mision-item.done{opacity:0.5;background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.15)}
+.mision-item .m-btn{padding:4px 10px;border-radius:6px;border:none;background:#22c55e;color:white;font-size:10px;font-weight:600;cursor:pointer;margin-left:auto;flex-shrink:0}
+.mision-item .m-btn:disabled{background:#4a5568;cursor:default}
+.mision-item .m-done{color:#22c55e;font-size:14px;margin-left:auto}
+@media(max-width:500px){.__mp{max-height:150px}}
 
 /* Responsive */
 @media(max-width:500px){
@@ -313,6 +331,7 @@ function toggleAI() {
     if (!widget.classList.contains('ai-hidden')) {
         inputField.focus();
         renderizarHistorial();
+        loadTokens();
     }
 }
 
@@ -336,6 +355,33 @@ function limpiarChat() {
     agregarMsgAI('Historial limpiado. Estoy listo para una nueva conversacion.');
     suggestionsEl.style.display = 'flex';
 }
+
+// === TOKEN SYSTEM ===
+let tokenBalance=100;
+async function loadTokens(){
+try{const r=await fetch('/api/tokens');const d=await r.json();
+if(d){tokenBalance=d.balance||0;document.getElementById('token-count').textContent=tokenBalance;document.getElementById('token-balance').textContent=tokenBalance;renderMisiones(d)}}catch(e){}}
+function renderMisiones(d){
+const l=document.getElementById('misiones-list');l.innerHTML='';
+const completed=d.missions||{};
+const all=(d.available_missions||[]);
+// Completed first
+all.forEach(m=>{
+if(!completed[m.id])return;
+const div=document.createElement('div');div.className='mision-item done';
+div.innerHTML=`<span>${m.icon}</span><span style="flex:1">${m.name}</span><span class="m-done">✅</span>`;l.appendChild(div)});
+// Pending
+all.forEach(m=>{
+if(completed[m.id])return;
+const div=document.createElement('div');div.className='mision-item';
+div.innerHTML=`<span>${m.icon}</span><span style="flex:1">${m.name}</span><span style="color:#4a5568;font-size:10px">⏳ haz la acción</span>`;l.appendChild(div)})}
+function toggleMisiones(){
+const el=document.getElementById('misiones-panel');
+el.style.display=el.style.display==='none'?'block':'none';
+if(el.style.display==='block')loadTokens()}
+
+async function tryAutoCompleteMission(missionId){
+try{await fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:missionId})});loadTokens()}catch(e){}}
 
 function escaparHTML(t) {
     return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -446,6 +492,7 @@ async function procesarEntrada() {
 }
 
 renderizarHistorial();
+loadTokens();
 </script>
 </body>
 </html>

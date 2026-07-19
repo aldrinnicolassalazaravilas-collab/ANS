@@ -1,0 +1,41 @@
+<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="z1" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="z2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="z3" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <radialGradient id="zc" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="white"/>
+      <stop offset="40%" stop-color="#e0e7ff"/>
+      <stop offset="100%" stop-color="#93c5fd"/>
+    </radialGradient>
+    <radialGradient id="zg" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="25" cy="25" r="17" fill="url(#zg)"/>
+
+  <!-- Blue arc: top-right, angle 300° → 60° -->
+  <path d="M33,11.1 A16,16 0 0,1 33,38.9" fill="none" stroke="url(#z1)" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Cyan arc: bottom, angle 60° → 180° -->
+  <path d="M33,38.9 A16,16 0 0,1 9,25" fill="none" stroke="url(#z2)" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Purple arc: left-top, angle 180° → 300° -->
+  <path d="M9,25 A16,16 0 0,1 33,11.1" fill="none" stroke="url(#z3)" stroke-width="4.5" stroke-linecap="round"/>
+
+  <!-- Core -->
+  <circle cx="25" cy="25" r="4.5" fill="url(#zc)"/>
+  <circle cx="25" cy="25" r="3" fill="white"/>
+  <circle cx="25" cy="25" r="4.5" fill="none" stroke="white" stroke-width="0.4" opacity="0.4"/>
+</svg>

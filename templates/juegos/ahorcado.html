@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>Ahorcado - ANS Games</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.hangman{font-family:monospace;font-size:28px;color:#a855f7;line-height:1.3;margin-bottom:8px;white-space:pre}
+.word{font-size:36px;letter-spacing:12px;font-weight:700;margin:16px 0;font-family:monospace}
+.hint{font-size:13px;color:#98a8c3;margin-bottom:12px}
+.letters{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:400px}
+.letters button{width:36px;height:36px;border-radius:8px;border:1px solid #2d4a7a;background:#1a2744;color:#e2e8f0;font-size:16px;font-weight:600;cursor:pointer}
+.letters button:hover{border-color:#a855f7}
+.letters button.used{opacity:0.3;cursor:default}
+.letters button.wrong{background:#ef4444;border-color:#ef4444}
+.letters button.right{background:#22c55e;border-color:#22c55e}
+.status{font-size:18px;margin-bottom:8px}
+.reset{padding:10px 28px;border-radius:10px;border:none;background:#a855f7;color:white;font-weight:600;cursor:pointer;font-size:14px;margin-top:16px}
+.lives{font-size:14px;color:#98a8c3;margin-bottom:8px}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_games.svg" alt="Games"><h1>💀 Ahorcado</h1>
+<a href="/games">← Panel</a>
+</header>
+<div class="content">
+<div class="status" id="status">Adivina la palabra</div>
+<div class="lives">Vidas: <b id="lives" style="color:#ef4444;font-size:20px">6</b></div>
+<div class="hangman" id="hangman"></div>
+<div class="word" id="word"></div>
+<div class="hint" id="hint"></div>
+<div class="letters" id="letters"></div>
+<button class="reset" onclick="initAhorcado()">🔄 Nueva palabra</button>
+</div>
+<script>
+const words=[{w:'PYTHON',h:'Lenguaje de programacion'},{w:'JAVASCRIPT',h:'Lenguaje del navegador'},{w:'FLASK',h:'Framework web de Python'},{w:'HTML',h:'Estructura de paginas web'},{w:'ALGORITMO',h:'Secuencia de pasos'},{w:'VARIABLE',h:'Almacena datos'},{w:'FUNCION',h:'Bloque de codigo reutilizable'},{w:'INTERNET',h:'Red de redes'},{w:'PROGRAMAR',h:'Escribir codigo'},{w:'FRAMEWORK',h:'Estructura para desarrollo'},{w:'DATABASE',h:'Almacena informacion'},{w:'GOOGLE',h:'Buscador mas usado'},{w:'WINDOWS',h:'Sistema operativo'},{w:'LINUX',h:'SO de codigo abierto'}];
+const hangmanStages=['  +---+\n  |   |\n      |\n      |\n      |\n      |\n=======',
+'  +---+\n  |   |\n  O   |\n      |\n      |\n      |\n=======',
+'  +---+\n  |   |\n  O   |\n  |   |\n      |\n      |\n=======',
+'  +---+\n  |   |\n  O   |\n /|   |\n      |\n      |\n=======',
+'  +---+\n  |   |\n  O   |\n /|\\  |\n      |\n      |\n=======',
+'  +---+\n  |   |\n  O   |\n /|\\  |\n /    |\n      |\n=======',
+'  +---+\n  |   |\n  O   |\n /|\\  |\n / \\  |\n      |\n======='];
+let word,wrongLetters,rightLetters,lives,gameActive;
+function initAhorcado(){
+const pick=words[Math.floor(Math.random()*words.length)];word=pick.w;hint=pick.h;
+wrongLetters=[];rightLetters=[];lives=6;gameActive=true;
+document.getElementById('status').textContent='Adivina la palabra';document.getElementById('lives').textContent='6';renderAhorcado()}
+function renderAhorcado(){
+document.getElementById('hangman').textContent=hangmanStages[6-lives];
+document.getElementById('word').textContent=word.split('').map(l=>rightLetters.includes(l)?l:'_').join(' ');
+document.getElementById('hint').textContent='💡 '+hint;
+const l=document.getElementById('letters');l.innerHTML='';
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(let=>{const b=document.createElement('button');b.textContent=let;b.className='';if(rightLetters.includes(let))b.classList.add('used','right');if(wrongLetters.includes(let))b.classList.add('used','wrong');b.onclick=()=>guess(let);l.appendChild(b)})}
+function guess(letra){
+if(!gameActive||rightLetters.includes(letra)||wrongLetters.includes(letra))return;
+if(word.includes(letra)){rightLetters.push(letra);renderAhorcado();if(word.split('').every(l=>rightLetters.includes(l))){gameActive=false;const score=lives*20;const cur=parseInt(localStorage.getItem('ans_score_ahorcado')||'0');const total=cur+score;localStorage.setItem('ans_score_ahorcado',total);document.getElementById('status').textContent='🎉 Ganaste! +'+score+'pts (total:'+total+')';renderAhorcado();fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_games'})}).catch(()=>{})}}
+else{wrongLetters.push(letra);lives--;document.getElementById('lives').textContent=lives;renderAhorcado();if(lives<=0){gameActive=false;document.getElementById('status').textContent='💀 Perdiste! Era: '+word;renderAhorcado()}}}
+initAhorcado()
+</script>
+</body>
+</html>

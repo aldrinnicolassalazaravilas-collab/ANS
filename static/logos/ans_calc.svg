@@ -1,0 +1,45 @@
+<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="d_bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a2744"/>
+      <stop offset="100%" stop-color="#0d1526"/>
+    </linearGradient>
+    <linearGradient id="d_display" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0f1a"/>
+      <stop offset="100%" stop-color="#141c30"/>
+    </linearGradient>
+    <linearGradient id="d_shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="48" height="48" rx="11" fill="url(#d_bg)" stroke="#2d4a7a" stroke-width="1"/>
+  <rect x="1" y="1" width="48" height="24" rx="11" fill="url(#d_shine)"/>
+  <!-- Display -->
+  <rect x="6" y="6" width="38" height="14" rx="4" fill="url(#d_display)" stroke="#3b82f6" stroke-width="0.8"/>
+  <rect x="8" y="8" width="34" height="10" rx="2" fill="#0d1526"/>
+  <text x="12" y="16" fill="#57a6ff" font-family="monospace" font-size="8" font-weight="bold" letter-spacing="1">ANS</text>
+  <text x="40" y="16" fill="#4ade80" font-family="monospace" font-size="6" text-anchor="end">=0</text>
+  <!-- Grid background -->
+  <rect x="6" y="23" width="38" height="21" rx="3" fill="#0d1526" opacity="0.5"/>
+  <!-- Buttons -->
+  <rect x="7" y="24" width="11" height="9" rx="2.5" fill="#f97316" stroke="#fb923c" stroke-width="0.3"/>
+  <rect x="19.5" y="24" width="11" height="9" rx="2.5" fill="#22c55e" stroke="#4ade80" stroke-width="0.3"/>
+  <rect x="32" y="24" width="11" height="9" rx="2.5" fill="#3b82f6" stroke="#60a5fa" stroke-width="0.3"/>
+  <rect x="7" y="35" width="11" height="9" rx="2.5" fill="#a855f7" stroke="#c084fc" stroke-width="0.3"/>
+  <rect x="19.5" y="35" width="11" height="9" rx="2.5" fill="#ec4899" stroke="#f472b6" stroke-width="0.3"/>
+  <rect x="32" y="35" width="11" height="9" rx="2.5" fill="#06b6d4" stroke="#22d3ee" stroke-width="0.3"/>
+  <text x="12.5" y="31" fill="white" font-family="monospace" font-size="7" text-anchor="middle" font-weight="bold">7</text>
+  <text x="25" y="31" fill="white" font-family="monospace" font-size="7" text-anchor="middle" font-weight="bold">8</text>
+  <text x="37.5" y="31" fill="white" font-family="monospace" font-size="7" text-anchor="middle" font-weight="bold">9</text>
+  <text x="12.5" y="42" fill="white" font-family="monospace" font-size="7" text-anchor="middle" font-weight="bold">4</text>
+  <text x="25" y="42" fill="white" font-family="monospace" font-size="7" text-anchor="middle" font-weight="bold">5</text>
+  <text x="37.5" y="42" fill="white" font-family="monospace" font-size="7" text-anchor="middle" font-weight="bold">6</text>
+  <!-- Shine on buttons -->
+  <rect x="7" y="24" width="11" height="3" rx="1.5" fill="white" opacity="0.15"/>
+  <rect x="19.5" y="24" width="11" height="3" rx="1.5" fill="white" opacity="0.15"/>
+  <rect x="32" y="24" width="11" height="3" rx="1.5" fill="white" opacity="0.15"/>
+  <rect x="7" y="35" width="11" height="3" rx="1.5" fill="white" opacity="0.15"/>
+  <rect x="19.5" y="35" width="11" height="3" rx="1.5" fill="white" opacity="0.15"/>
+  <rect x="32" y="35" width="11" height="3" rx="1.5" fill="white" opacity="0.15"/>
+</svg>

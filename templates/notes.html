@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Notes</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:700px;margin:20px auto;padding:20px}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.toolbar button{padding:8px 14px;border-radius:8px;border:1px solid #2d4a7a;background:#1a2744;color:#e2e8f0;cursor:pointer;font-size:13px}
+.toolbar button:hover{border-color:#57a6ff}
+.toolbar select{padding:8px;border-radius:8px;border:1px solid #2d4a7a;background:#1a2744;color:#e2e8f0;font-size:13px}
+.editor{width:100%;min-height:350px;padding:16px;border:1px solid #2d4a7a;border-radius:12px;background:#0a0f1a;color:#e2e8f0;font-size:14px;line-height:1.6;outline:none;resize:vertical;font-family:'Poppins',sans-serif}
+.editor:focus{border-color:#57a6ff}
+.sidebar{display:flex;gap:12px;margin-bottom:16px}
+.sidebar input{flex:1;padding:10px;border-radius:8px;border:1px solid #2d4a7a;background:#0a0f1a;color:#e2e8f0;font-size:13px;outline:none}
+.sidebar input:focus{border-color:#fbbf24}
+.sidebar button{padding:10px 20px;border-radius:8px;border:none;background:#2563eb;color:white;cursor:pointer;font-weight:600}
+#list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.note-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#1a2744;border-radius:8px;cursor:pointer}
+.note-item:hover{background:#2d4a7a}
+.note-item .del{background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:4px}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_notes.svg" alt="Notes"><h1>ANS Notes</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="sidebar">
+<input id="note-title" placeholder="Título de la nota..." value="Mi nota">
+<button onclick="saveNote()">💾 Guardar</button>
+<button onclick="exportNote()" style="background:#22c55e">📤 Exportar</button>
+</div>
+<div class="toolbar">
+<button onclick="exec('bold')"><b>B</b></button>
+<button onclick="exec('italic')"><i>I</i></button>
+<button onclick="exec('underline')"><u>U</u></button>
+<button onclick="exec('strikeThrough')"><s>S</s></button>
+<button onclick="exec('insertUnorderedList')">• Lista</button>
+<button onclick="exec('insertOrderedList')">1. Lista</button>
+<select onchange="exec('formatBlock',this.value)">
+<option value="">Normal</option>
+<option value="h1">Título 1</option>
+<option value="h2">Título 2</option>
+<option value="h3">Título 3</option>
+<option value="pre">Código</option>
+</select>
+<button onclick="exec('removeFormat')">⌫ Limpiar</button>
+</div>
+<div class="editor" id="editor" contenteditable="true"></div>
+<div id="list"></div>
+</div>
+<script>
+const editor=document.getElementById('editor');
+const title=document.getElementById('note-title');
+let notes=JSON.parse(localStorage.getItem('ans_notes')||'{}');
+let current=localStorage.getItem('ans_note_current')||'default';
+
+function exec(cmd,val){document.execCommand(cmd,false,val);editor.focus()}
+function saveNote(){notes[title.value]=editor.innerHTML;localStorage.setItem('ans_notes',JSON.stringify(notes));renderList();showToast('Nota guardada');fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_notes'})}).catch(()=>{})}
+function loadNote(t){title.value=t;editor.innerHTML=notes[t]||'';current=t;localStorage.setItem('ans_note_current',t)}
+function deleteNote(t){delete notes[t];localStorage.setItem('ans_notes',JSON.stringify(notes));renderList();if(t===current){title.value='Mi nota';editor.innerHTML=''}}
+function exportNote(){const html=`<html><head><meta charset="UTF-8"><title>${title.value}</title></head><body>${editor.innerHTML}</body></html>`;const b=new Blob([html],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${title.value}.html`;a.click()}
+function renderList(){const l=document.getElementById('list');l.innerHTML='';Object.keys(notes).forEach(k=>{const d=document.createElement('div');d.className='note-item';d.innerHTML=`<span>📄 ${k}</span><button class="del" onclick="deleteNote('${k.replace(/'/g,"\\'")}')">×</button>`;d.onclick=()=>loadNote(k);l.appendChild(d)})}
+function showToast(m){const t=document.createElement('div');t.textContent=m;t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#22c55e;color:white;padding:10px 24px;border-radius:8px;font-size:13px;z-index:999';document.body.appendChild(t);setTimeout(()=>t.remove(),2000)}
+renderList();if(notes[current])loadNote(current)
+</script>
+</body>
+</html>

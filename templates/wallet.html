@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Wallet</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:650px;margin:20px auto;padding:0 16px}
+.balance{text-align:center;padding:20px;background:linear-gradient(135deg,#1a2744,#2d1b4e);border:1px solid #a855f7;border-radius:14px;margin-bottom:12px}
+.balance .amount{font-size:42px;font-weight:700;color:#ec4899;letter-spacing:-1px;word-wrap:break-word}
+.balance .label{font-size:13px;color:#98a8c3}
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
+.summary div{text-align:center;padding:10px;background:#1a2744;border-radius:10px;font-size:12px}
+.summary div span{display:block;font-size:18px;font-weight:700}
+.chart-bar{display:flex;gap:3px;align-items:flex-end;height:50px;margin-bottom:12px;padding:0 2px;overflow-x:auto}
+.chart-bar .bar{border-radius:3px 3px 0 0;min-height:4px;min-width:28px;transition:height .3s;position:relative;flex-shrink:0}
+.chart-bar .bar .bar-label{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:8px;color:#4a5568;white-space:nowrap}
+.filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.filters select,.filters input{padding:8px 10px;border-radius:8px;border:1px solid #2d4a7a;background:#0a0f1a;color:#e2e8f0;font-size:12px;outline:none;flex:1;min-width:70px}
+.filters select:focus,.filters input:focus{border-color:#ec4899}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.form input,.form select{padding:10px;border-radius:8px;border:1px solid #2d4a7a;background:#0a0f1a;color:#e2e8f0;font-size:12px;outline:none}
+.form input:focus,.form select:focus{border-color:#ec4899}
+.form button{padding:10px;border-radius:8px;border:none;background:#ec4899;color:white;font-weight:600;cursor:pointer;font-size:13px}
+.form button:hover{background:#db2777}
+.form .full{grid-column:1/-1}
+.list{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#1a2744;border-radius:10px;border-left:3px solid}
+.item .info{text-align:left;min-width:0;flex:1}
+.item .info .cat{font-size:10px;color:#98a8c3}
+.item .info .date{font-size:10px;color:#4ade80}
+.item .info .desc{font-size:13px;word-wrap:break-word}
+.item .info .location{font-size:10px;color:#57a6ff;cursor:pointer}
+.item .val{font-weight:600;flex-shrink:0;margin-left:8px}
+.item .del{background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:2px 6px;border-radius:50%;opacity:0}
+.item:hover .del{opacity:1}
+.empty-msg{text-align:center;padding:24px;color:#4a5568;font-size:13px}
+.totals-row{display:flex;justify-content:space-between;padding:6px 4px;font-size:11px;color:#98a8c3;border-top:1px solid #1a2744;margin-top:6px}
+.location-input{display:flex;gap:4px;grid-column:1/-1}
+.location-input input{flex:1}
+.location-input button{padding:6px 10px;border-radius:8px;border:none;background:#57a6ff;color:white;font-size:11px;cursor:pointer;white-space:nowrap}
+@media(max-width:600px){
+header{padding:12px 16px}.balance .amount{font-size:32px}
+.summary div span{font-size:16px}.form{grid-template-columns:1fr}
+.location-input{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_wallet.svg" alt="Wallet"><h1>ANS Wallet</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="balance">
+<div class="label">Balance Total</div>
+<div class="amount" id="balance">$0</div>
+</div>
+<div class="summary">
+<div><span id="s-ing">$0</span>💰 Ingresos</div>
+<div><span id="s-egr">$0</span>💸 Gastos</div>
+<div><span id="s-count">0</span>📦 Transacciones</div>
+</div>
+<div class="chart-bar" id="chart-bar"></div>
+<div class="filters">
+<select id="filter-cat"><option value="">📂 Todas</option><option value="Comida">🍕 Comida</option><option value="Transporte">🚌 Transporte</option><option value="Entretenimiento">🎮 Entretenimiento</option><option value="Salud">💊 Salud</option><option value="Educación">📚 Educación</option><option value="Hogar">🏠 Hogar</option><option value="Ropa">👕 Ropa</option><option value="Tecnología">💻 Tecnología</option><option value="Salario">💼 Salario</option><option value="Otro">📦 Otro</option></select>
+<select id="filter-type"><option value="">📊 Todos</option><option value="ingreso">💰 Ingreso</option><option value="gasto">💸 Gasto</option></select>
+<select id="filter-date"><option value="all">📅 Todo</option><option value="week">Semana</option><option value="month">Mes</option><option value="3months">3 meses</option></select>
+<input id="filter-search" placeholder="🔍 Buscar..." oninput="render()">
+</div>
+<div class="form">
+<input id="desc" placeholder="Descripción">
+<input id="amount" type="number" placeholder="Monto">
+<select id="type"><option value="ingreso">💰 Ingreso</option><option value="gasto">💸 Gasto</option></select>
+<select id="cat"><option value="Comida">🍕 Comida</option><option value="Transporte">🚌 Transporte</option><option value="Entretenimiento">🎮 Entretenimiento</option><option value="Salud">💊 Salud</option><option value="Educación">📚 Educación</option><option value="Hogar">🏠 Hogar</option><option value="Ropa">👕 Ropa</option><option value="Tecnología">💻 Tecnología</option><option value="Salario">💼 Salario</option><option value="Otro">📦 Otro</option></select>
+<div class="location-input">
+<input id="location" placeholder="📍 Ciudad (ej: Buenos Aires)">
+<button onclick="useMyLocation()">📍 Mí ubicación</button>
+</div>
+<button onclick="addTrans()" class="full">➕ Agregar</button>
+</div>
+<div id="list" class="list"></div>
+<div class="totals-row" id="totals-row"></div>
+</div>
+<script>
+let trans=JSON.parse(localStorage.getItem('ans_wallet')||'[]');
+const CAT_COLORS={Comida:'#ef4444',Transporte:'#f97316',Entretenimiento:'#fbbf24',Salud:'#22c55e',Educación:'#3b82f6',Hogar:'#a855f7',Ropa:'#ec4899',Tecnología:'#06b6d4',Salario:'#10b981',Otro:'#4a5568'};
+const CAT_ICONS={Comida:'🍕',Transporte:'🚌',Entretenimiento:'🎮',Salud:'💊',Educación:'📚',Hogar:'🏠',Ropa:'👕',Tecnología:'💻',Salario:'💼',Otro:'📦'};
+function useMyLocation(){
+if(navigator.geolocation){
+navigator.geolocation.getCurrentPosition(p=>{
+document.getElementById('location').value=p.coords.latitude.toFixed(4)+','+p.coords.longitude.toFixed(4);
+},()=>{alert('No se pudo obtener ubicación')})
+}else{alert('Geolocalización no disponible')}
+}
+
+function getFiltered(){
+let list=[...trans];
+const cat=document.getElementById('filter-cat').value;
+const type=document.getElementById('filter-type').value;
+const dateRange=document.getElementById('filter-date').value;
+const search=document.getElementById('filter-search').value.toLowerCase().trim();
+if(cat)list=list.filter(t=>t.cat===cat);
+if(type)list=list.filter(t=>t.type===type);
+if(search)list=list.filter(t=>t.desc.toLowerCase().includes(search)||t.cat.toLowerCase().includes(search)||(t.location||'').toLowerCase().includes(search));
+if(dateRange!=='all'){const now=new Date();let cutoff;if(dateRange==='week'){cutoff=new Date(now);cutoff.setDate(now.getDate()-7)}else if(dateRange==='month'){cutoff=new Date(now);cutoff.setMonth(now.getMonth()-1)}else if(dateRange==='3months'){cutoff=new Date(now);cutoff.setMonth(now.getMonth()-3)}if(cutoff)list=list.filter(t=>new Date(t.dateRaw||t.date)>=cutoff)}
+return list;
+}
+
+function renderChart(filtered){
+const canvas=document.getElementById('chart-bar');canvas.innerHTML='';
+const groups={};filtered.forEach(t=>{const cat=t.cat||'Otro';if(!groups[cat])groups[cat]={ing:0,egr:0};if(t.type==='ingreso')groups[cat].ing+=parseFloat(t.amount)||0;else groups[cat].egr+=parseFloat(t.amount)||0});
+const keys=Object.keys(groups);
+if(keys.length===0){canvas.innerHTML='<div style="text-align:center;width:100%;font-size:11px;color:#4a5568">Sin datos</div>';return}
+const max=Math.max(1,...keys.map(k=>Math.max(groups[k].ing,groups[k].egr)));
+keys.forEach(k=>{const h=Math.max((Math.max(groups[k].ing,groups[k].egr)/max)*46,4);const bar=document.createElement('div');bar.className='bar';bar.style.cssText=`background:${CAT_COLORS[k]||'#4a5568'}`;bar.style.height=h+'px';bar.title=k+': +$'+groups[k].ing.toFixed(2)+' / -$'+groups[k].egr.toFixed(2);const lbl=document.createElement('div');lbl.className='bar-label';lbl.textContent=CAT_ICONS[k]||'📦';bar.appendChild(lbl);canvas.appendChild(bar)});
+}
+
+function render(){
+const filtered=getFiltered();
+let bal=0,ing=0,egr=0;
+trans.forEach(t=>{const v=parseFloat(t.amount)||0;if(t.type==='ingreso'){bal+=v;ing+=v}else{bal-=v;egr+=v}});
+document.getElementById('balance').textContent='$'+bal.toFixed(2);
+document.getElementById('s-ing').textContent='$'+ing.toFixed(2);
+document.getElementById('s-egr').textContent='$'+egr.toFixed(2);
+document.getElementById('s-count').textContent=trans.length;
+let fIng=0,fEgr=0;filtered.forEach(t=>{const v=parseFloat(t.amount)||0;if(t.type==='ingreso')fIng+=v;else fEgr+=v});
+document.getElementById('totals-row').innerHTML=`<span>${filtered.length}/${trans.length}</span><span>💰 +$${fIng.toFixed(2)} 💸 -$${fEgr.toFixed(2)}</span>`;
+const l=document.getElementById('list');l.innerHTML='';
+if(filtered.length===0){l.innerHTML='<div class="empty-msg">😕 No hay transacciones con estos filtros</div>';renderChart([]);return}
+filtered.slice().reverse().forEach(t=>{
+const d=document.createElement('div');d.className='item';d.style.borderColor=t.type==='ingreso'?'#22c55e':'#ef4444';
+const icon=CAT_ICONS[t.cat]||'📦';
+const locHtml=t.location?`<div class="location">📍 ${t.location}</div>`:'';
+d.innerHTML=`<div class="info"><div class="desc">${icon} ${t.desc}</div><div class="cat">${t.cat}</div><div class="date">${t.date}</div>${locHtml}</div><div class="val" style="color:${t.type==='ingreso'?'#22c55e':'#ef4444'}">${t.type==='ingreso'?'+':'-'}$${parseFloat(t.amount).toFixed(2)}</div><button class="del" onclick="delTrans(${trans.indexOf(t)})">×</button>`;
+l.appendChild(d)});
+renderChart(filtered);
+}
+
+function addTrans(){
+const desc=document.getElementById('desc').value.trim()||'Sin descripción';
+const amount=document.getElementById('amount').value;
+if(!amount||parseFloat(amount)<=0)return alert('Monto inválido');
+const now=new Date();
+const location=document.getElementById('location').value.trim();
+trans.push({desc,amount:parseFloat(amount),type:document.getElementById('type').value,cat:document.getElementById('cat').value,date:now.toLocaleDateString(),dateRaw:now.toISOString(),location:location||''});
+localStorage.setItem('ans_wallet',JSON.stringify(trans));
+document.getElementById('desc').value='';document.getElementById('amount').value='';document.getElementById('location').value='';
+render();
+fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_wallet'})}).catch(()=>{})
+}
+
+function delTrans(i){trans.splice(i,1);localStorage.setItem('ans_wallet',JSON.stringify(trans));render()}
+
+document.getElementById('filter-cat').onchange=render;
+document.getElementById('filter-type').onchange=render;
+document.getElementById('filter-date').onchange=render;
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>ANS Calc</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:#0f1624; color:#e2e8f0; font-family:'Poppins',sans-serif; height:100vh; display:flex; flex-direction:column; }
+        header { display:flex; align-items:center; gap:12px; padding:16px 24px; background:#1a2744; border-bottom:1px solid #2d4a7a; }
+        header img { width:32px; height:32px; }
+        header h1 { font-size:18px; font-weight:600; flex:1; }
+        header a { color:#57a6ff; text-decoration:none; font-size:13px; }
+        .calc { max-width:320px; margin:40px auto; padding:20px; background:#1a2744; border-radius:16px; border:1px solid #2d4a7a; }
+        #display { width:100%; padding:16px; font-size:24px; text-align:right; background:#0f1624; border:1px solid #2d4a7a; border-radius:10px; color:#57a6ff; font-family:monospace; margin-bottom:16px; outline:none; }
+        .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+        .buttons button { padding:16px; font-size:16px; font-weight:600; border:none; border-radius:10px; cursor:pointer; }
+        .num { background:#0f1624; color:#e2e8f0; border:1px solid #2d4a7a !important; }
+        .num:hover { background:#1a2744; }
+        .op { background:#f97316; color:white; }
+        .op:hover { background:#ea580c; }
+        .eq { background:#2563eb; color:white; }
+        .eq:hover { background:#1d4ed8; }
+        .clr { background:#ef4444; color:white; }
+        .clr:hover { background:#dc2626; }
+        .back { display:inline-flex; align-items:center; gap:6px; color:#57a6ff; text-decoration:none; font-size:14px; margin:20px; }
+    </style>
+</head>
+<body>
+    <a href="/herramientas" class="back">← Herramientas</a>
+    <div class="calc">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <img src="/static/logos/ans_calc.svg" alt="Calc" style="width:30px;height:30px;">
+            <span style="font-weight:600;">ANS Calc</span>
+        </div>
+        <input id="display" readonly value="0">
+        <div class="buttons">
+            <button class="clr" onclick="clearDisplay()">C</button>
+            <button class="op" onclick="add('(')">(</button>
+            <button class="op" onclick="add(')')">)</button>
+            <button class="op" onclick="add('/')">÷</button>
+            <button class="num" onclick="add('7')">7</button>
+            <button class="num" onclick="add('8')">8</button>
+            <button class="num" onclick="add('9')">9</button>
+            <button class="op" onclick="add('*')">×</button>
+            <button class="num" onclick="add('4')">4</button>
+            <button class="num" onclick="add('5')">5</button>
+            <button class="num" onclick="add('6')">6</button>
+            <button class="op" onclick="add('-')">−</button>
+            <button class="num" onclick="add('1')">1</button>
+            <button class="num" onclick="add('2')">2</button>
+            <button class="num" onclick="add('3')">3</button>
+            <button class="op" onclick="add('+')">+</button>
+            <button class="num" onclick="add('0')">0</button>
+            <button class="num" onclick="add('.')">.</button>
+            <button class="num" onclick="add('**')">xʸ</button>
+            <button class="eq" onclick="calc()">=</button>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+            <button onclick="fetchCalc()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#22c55e;color:white;font-weight:600;cursor:pointer;">Resolver con AI</button>
+        </div>
+    </div>
+    <script>
+        const display = document.getElementById('display');
+        function add(v) { display.value = display.value === '0' ? v : display.value + v; }
+        function clearDisplay() { display.value = '0'; }
+        function calc() { try { display.value = eval(display.value) || '0'; } catch(e) { display.value = 'Error'; } }
+        async function fetchCalc() {
+            const res = await fetch('/api/calculate', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({expr: display.value})
+            });
+            const data = await res.json();
+            if (data.result !== null && data.result !== undefined) display.value = data.result;
+            else alert('Error: ' + (data.error || 'desconocido'));
+            try{await fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_calc'})})}catch(e){}
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter') calc();
+            if (e.key === 'Backspace') display.value = display.value.slice(0,-1) || '0';
+            if (/^[\d+\-*/.()]$/.test(e.key)) add(e.key);
+        });
+    </script>
+</body>
+</html>

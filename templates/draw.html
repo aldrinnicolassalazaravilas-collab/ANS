@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Draw</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:600px;margin:20px auto;padding:20px;text-align:center}
+#draw-canvas{width:100%;max-width:500px;height:300px;background:#0a0f1a;border:2px solid #2d4a7a;border-radius:12px;margin:16px auto;display:block;cursor:crosshair}
+.tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.tools button{padding:8px 16px;border-radius:8px;border:1px solid #2d4a7a;background:#1a2744;color:#e2e8f0;cursor:pointer;font-size:13px}
+.tools button:hover{border-color:#57a6ff}
+.active{border-color:#57a6ff!important;background:#2563eb!important}
+.color-picker{display:flex;gap:6px;justify-content:center;margin:8px 0}
+.color-picker button{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+.color-picker button.sel{border-color:white}
+#result-svg{margin-top:12px;padding:12px;background:#0a0f1a;border-radius:8px;display:none}
+#result-svg svg{max-width:100%}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_draw.svg" alt="Draw"><h1>ANS Draw</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="tools">
+<button id="pen-btn" class="active" onclick="setTool('pen')">✏️ Lápiz</button>
+<button onclick="setTool('line')">📏 Línea</button>
+<button onclick="setTool('rect')">⬜ Rect</button>
+<button onclick="setTool('circle')">⭕ Círculo</button>
+<button onclick="clearCanvas()">🗑️ Limpiar</button>
+<button onclick="sendToAI()">🤖 Enviar a AI</button>
+</div>
+<div class="color-picker" id="colors"></div>
+<canvas id="draw-canvas"></canvas>
+<div id="result-svg"></div>
+</div>
+<script>
+const canvas=document.getElementById('draw-canvas');
+const ctx=canvas.getContext('2d');
+let tool='pen',color='#57a6ff',drawing=false,startX,startY;
+canvas.width=500;canvas.height=300;ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineCap='round';
+
+const colors=['#57a6ff','#ef4444','#22c55e','#fbbf24','#f97316','#a855f7','#ec4899','#22d3ee','#ffffff','#98a8c3'];
+const cp=document.getElementById('colors');
+colors.forEach(c=>{const b=document.createElement('button');b.style.background=c;b.onclick=()=>{setColor(c)};cp.appendChild(b)});
+document.querySelector('#colors button').classList.add('sel');
+
+function setColor(c){color=c;ctx.strokeStyle=c;document.querySelectorAll('#colors button').forEach(b=>b.classList.remove('sel'));event.target.classList.add('sel')}
+function setTool(t){tool=t;document.querySelectorAll('.tools button').forEach(b=>b.classList.remove('active'));event.target.classList.add('active')}
+function getPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX||e.touches[0].clientX)-r.left,y:(e.clientY||e.touches[0].clientY)-r.top}}
+
+canvas.onmousedown=e=>{drawing=true;const p=getPos(e);startX=p.x;startY=p.y;if(tool==='pen'){ctx.beginPath();ctx.moveTo(p.x,p.y)}};
+canvas.onmousemove=e=>{if(!drawing)return;const p=getPos(e);if(tool==='pen'){ctx.lineTo(p.x,p.y);ctx.stroke()}};
+canvas.onmouseup=e=>{if(!drawing)return;drawing=false;if(tool==='line'){const p=getPos(e);ctx.beginPath();ctx.moveTo(startX,startY);ctx.lineTo(p.x,p.y);ctx.stroke()}
+else if(tool==='rect'){const p=getPos(e);ctx.strokeRect(startX,startY,p.x-startX,p.y-startY)}
+else if(tool==='circle'){const p=getPos(e);const r=Math.sqrt((p.x-startX)**2+(p.y-startY)**2);ctx.beginPath();ctx.arc(startX,startY,r,0,Math.PI*2);ctx.stroke()}};
+canvas.ontouchstart=e=>{e.preventDefault();drawing=true;const t=e.touches[0];const r=canvas.getBoundingClientRect();startX=t.clientX-r.left;startY=t.clientY-r.top;ctx.beginPath();ctx.moveTo(startX,startY)};
+canvas.ontouchmove=e=>{e.preventDefault();if(!drawing)return;const t=e.touches[0];const r=canvas.getBoundingClientRect();ctx.lineTo(t.clientX-r.left,t.clientY-r.top);ctx.stroke()};
+canvas.ontouchend=e=>{drawing=false};
+
+function clearCanvas(){ctx.clearRect(0,0,canvas.width,canvas.height)}
+function sendToAI(){const data=canvas.toDataURL('image/png');document.getElementById('result-svg').style.display='block';document.getElementById('result-svg').innerHTML=`<p style="font-size:13px;color:#98a8c3;margin-bottom:8px;">✅ Dibujo listo para usar</p><img src="${data}" style="max-width:100%;border-radius:8px;">`;fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_draw'})}).catch(()=>{})}
+</script>
+</body>
+</html>

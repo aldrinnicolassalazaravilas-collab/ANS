@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Games</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:450px;margin:20px auto;padding:20px;text-align:center}
+.tabs{display:flex;gap:8px;margin-bottom:16px;justify-content:center}
+.tabs button{padding:10px 20px;border-radius:10px;border:1px solid #2d4a7a;background:#1a2744;color:#e2e8f0;cursor:pointer;font-weight:600;font-size:14px}
+.tabs button.act{border-color:#ef4444;background:#ef4444;color:white}
+.game{display:none}
+.game.act{display:block}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:240px;margin:16px auto}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;background:#1a2744;border:1px solid #2d4a7a;border-radius:10px;cursor:pointer}
+.cell:hover{background:#2d4a7a}
+.cell.taken{cursor:default}
+.status{font-size:16px;margin:12px 0;color:#98a8c3}
+.reset{padding:10px 28px;border-radius:10px;border:none;background:#ef4444;color:white;font-weight:600;cursor:pointer}
+.score{display:flex;gap:20px;justify-content:center;margin-bottom:12px;font-size:14px}
+.score span{color:#98a8c3}
+.score b{color:#ef4444;font-size:20px}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_games.svg" alt="Games"><h1>ANS Games</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="tabs">
+<button class="act" onclick="showGame('tictac')">❌ Tres en línea</button>
+<button onclick="showGame('snake')">🐍 Snake</button>
+</div>
+<div id="game-tictac" class="game act">
+<div class="score"><div>❌ <b id="score-x">0</b></div><div>🤝 <b id="score-d">0</b></div><div>⭕ <b id="score-o">0</b></div></div>
+<div class="status" id="status">Tu turno (❌)</div>
+<div class="board" id="board"></div>
+<button class="reset" onclick="initTicTac()">🔄 Reiniciar</button>
+</div>
+<div id="game-snake" class="game">
+<div class="status">Puntuación: <b id="snake-score">0</b></div>
+<canvas id="snake-canvas" width="300" height="300" style="border:1px solid #2d4a7a;border-radius:10px;background:#0a0f1a;display:block;margin:12px auto"></canvas>
+<button class="reset" onclick="initSnake()">🔄 Reiniciar</button>
+<div style="font-size:11px;color:#98a8c3;margin-top:8px">↑ ↓ ← → para mover</div>
+</div>
+</div>
+<script>
+// Tres en línea
+let b=['','','','','','','','',''],turn='X',sX=0,sO=0,sD=0,xTurn=true;
+function initTicTac(){b=['','','','','','','','',''];turn='X';xTurn=true;renderBoard();document.getElementById('status').textContent='Tu turno (❌)'}
+function renderBoard(){const brd=document.getElementById('board');brd.innerHTML='';b.forEach((v,i)=>{const c=document.createElement('div');c.className='cell'+(v?' taken':'');c.textContent=v==='X'?'❌':v==='O'?'⭕':'';c.onclick=()=>move(i);brd.appendChild(c)})}
+function move(i){if(b[i]||!xTurn)return;b[i]='X';xTurn=false;renderBoard();if(checkWin('X')){document.getElementById('status').textContent='🎉 Ganaste!';sX++;document.getElementById('score-x').textContent=sX;xTurn=true;setTimeout(initTicTac,1500);return}
+if(b.every(v=>v)){document.getElementById('status').textContent='🤝 Empate';sD++;document.getElementById('score-d').textContent=sD;xTurn=true;setTimeout(initTicTac,1500);return}
+document.getElementById('status').textContent='AI piensa... ⏳';
+setTimeout(()=>{aiMove();renderBoard();if(checkWin('O')){document.getElementById('status').textContent='😵 Perdiste!';sO++;document.getElementById('score-o').textContent=sO;xTurn=true;setTimeout(initTicTac,1500);return}
+if(b.every(v=>v)){document.getElementById('status').textContent='🤝 Empate';sD++;document.getElementById('score-d').textContent=sD;xTurn=true;setTimeout(initTicTac,1500);return}
+xTurn=true;document.getElementById('status').textContent='Tu turno (❌)'},500)}
+function aiMove(){const e=b.reduce((a,v,i)=>v===''?[...a,i]:a,[]);if(e.length>0)b[e[Math.floor(Math.random()*e.length)]]='O'}
+function checkWin(p){return[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(([a,b,c])=>[a,b,c].every(i=>b[i]===p))}
+initTicTac();
+// Snake
+let snakeCtx,canvasSnake,snake,dir,food,gameOver,snakeInt,snakeScore;
+function initSnake(){
+clearInterval(snakeInt);
+canvasSnake=document.getElementById('snake-canvas');
+snakeCtx=canvasSnake.getContext('2d');
+snake=[[10,10]];dir=[1,0];food=[];gameOver=false;snakeScore=0;
+document.getElementById('snake-score').textContent='0';
+spawnFood();drawSnake();snakeInt=setInterval(updateSnake,150)
+}
+function spawnFood(){while(true){const f=[Math.floor(Math.random()*30),Math.floor(Math.random()*30)];if(!snake.some(s=>s[0]===f[0]&&s[1]===f[1])){food=f;break}}}
+function drawSnake(){
+snakeCtx.fillStyle='#0a0f1a';snakeCtx.fillRect(0,0,300,300);
+snake.forEach((s,i)=>{snakeCtx.fillStyle=i===0?'#22c55e':'#4ade80';snakeCtx.fillRect(s[0]*10+1,s[1]*10+1,8,8)});
+snakeCtx.fillStyle='#ef4444';snakeCtx.fillRect(food[0]*10+1,food[1]*10+1,8,8)
+}
+function updateSnake(){
+if(gameOver)return;
+const h=snake[0];const n=[h[0]+dir[0],h[1]+dir[1]];
+if(n[0]<0||n[0]>=30||n[1]<0||n[1]>=30||snake.some(s=>s[0]===n[0]&&s[1]===n[1])){gameOver=true;clearInterval(snakeInt);alert('🐍 Game Over! Puntuación: '+snakeScore);return}
+snake.unshift(n);
+if(n[0]===food[0]&&n[1]===food[1]){snakeScore++;document.getElementById('snake-score').textContent=snakeScore;spawnFood()}else snake.pop();
+drawSnake()
+}
+document.addEventListener('keydown',e=>{
+const k=e.key;const nd=dir;
+if(k==='ArrowUp'&&nd[1]!==1)dir=[0,-1];
+if(k==='ArrowDown'&&nd[1]!==-1)dir=[0,1];
+if(k==='ArrowLeft'&&nd[0]!==1)dir=[-1,0];
+if(k==='ArrowRight'&&nd[0]!==-1)dir=[1,0]
+});
+initSnake();
+// Tab switching
+function showGame(g){document.querySelectorAll('.game').forEach(g=>g.classList.remove('act'));document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('act'));document.getElementById('game-'+g).classList.add('act');event.target.classList.add('act')}
+</script>
+</body>
+</html>

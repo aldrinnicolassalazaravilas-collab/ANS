@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Scan</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:500px;margin:20px auto;padding:20px;text-align:center}
+.card{background:#1a2744;border:1px solid #2d4a7a;border-radius:14px;padding:24px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px}
+input{width:100%;padding:12px;border-radius:8px;border:1px solid #2d4a7a;background:#0a0f1a;color:#e2e8f0;font-size:14px;outline:none;margin-bottom:12px}
+input:focus{border-color:#4ade80}
+.gen-btn{padding:12px 28px;border-radius:10px;border:none;background:#22c55e;color:white;font-weight:600;cursor:pointer;font-size:15px}
+.gen-btn:hover{background:#16a34a}
+#qr-result{margin-top:16px;display:none}
+#qr-result img{background:white;padding:12px;border-radius:8px;max-width:200px}
+.dl-btn{display:inline-block;margin-top:12px;padding:8px 20px;border-radius:8px;background:#2563eb;color:white;text-decoration:none;font-size:13px;font-weight:600}
+.barcode{font-family:monospace;font-size:48px;letter-spacing:4px;color:#4ade80;word-break:break-all}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_scan.svg" alt="Scan"><h1>ANS Scan</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="card">
+<h2>📱 Generar QR</h2>
+<input id="qr-input" placeholder="Texto o URL para el QR..." value="https://ans-proyect.vercel.app">
+<button class="gen-btn" onclick="generarQR()">Generar QR</button>
+<div id="qr-result"></div>
+</div>
+<div class="card">
+<h2>📋 Generar Código de Barras</h2>
+<input id="bar-input" placeholder="Números para código de barras..." value="1234567890">
+<button class="gen-btn" onclick="generarBarra()">Generar</button>
+<div id="bar-result" style="margin-top:12px"></div>
+</div>
+</div>
+<script>
+function generarQR(){
+const text=document.getElementById('qr-input').value.trim();
+if(!text)return alert('Escribe algo');
+const url='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(text);
+const div=document.getElementById('qr-result');
+div.style.display='block';
+div.innerHTML=`<img src="${url}" alt="QR"><br><a class="dl-btn" href="${url}" download="qr.png">Descargar QR</a>`;
+fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_scan'})}).catch(()=>{})
+}
+function generarBarra(){
+const text=document.getElementById('bar-input').value.trim();
+if(!text)return alert('Escribe números');
+const div=document.getElementById('bar-result');
+div.innerHTML=`<div class="barcode">${'█'.repeat(5)}${text.split('').map(d=>'█'.repeat(parseInt(d)+1)).join(' ')}${'█'.repeat(5)}</div><p style="font-size:12px;color:#98a8c3;margin-top:8px">${text}</p>`;
+}
+</script>
+</body>
+</html>

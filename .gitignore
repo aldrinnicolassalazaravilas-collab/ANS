@@ -21,3 +21,15 @@ ans_users.json
 # OS
 Thumbs.db
 .DS_Store
+
+# Runtime data files (generated on server at /tmp/ans_data)
+ans_chats.json
+ans_messages.json
+tokens.json
+mail/
+music/
+chat_files/
+
+# Temp / debugging files
+/*.txt
+/*.log

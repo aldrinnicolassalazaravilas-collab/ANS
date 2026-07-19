@@ -113,6 +113,7 @@
             <button class="tab" onclick="cambiarTab('modelos')"><span class="model-label model-flask">Flask</span> <span class="model-label model-gapi">Gapi</span> <span class="model-label model-modify">Modify</span></button>
             <button class="tab" onclick="cambiarTab('bloqueados')">Bloqueados</button>
             <button class="tab" onclick="cambiarTab('mensajes')">Mensajes ({{ messages|length }})</button>
+            <button class="tab" onclick="cambiarTab('tokens')">🪙 Tokens</button>
         </div>
 
         <div class="section active" id="tab-usuarios">
@@ -233,6 +234,34 @@
                 {% endif %}
             </div>
         </div>
+
+        <div class="section" id="tab-tokens">
+            <div class="section-title">🪙 Gestión de Tokens y Misiones</div>
+            <div class="card">
+                {% if tokens %}
+                <table>
+                    <tr><th>Usuario</th><th>🪙 Saldo</th><th>💰 Ganado</th><th>💸 Gastado</th><th>🎯 Misiones</th><th>Acción</th></tr>
+                    {% for t in tokens %}
+                    <tr>
+                        <td>{% if t.picture %}<img src="{{ t.picture }}" class="user-pic">{% endif %}{{ t.name }}</td>
+                        <td><strong style="color:#fbbf24">{{ t.balance }}</strong></td>
+                        <td style="color:#22c55e">{{ t.total_earned }}</td>
+                        <td style="color:#ef4444">{{ t.total_spent }}</td>
+                        <td>{{ t.missions|length }}/{{ daily_missions|length }}</td>
+                        <td style="display:flex;gap:4px;flex-wrap:wrap;">
+                            <button class="btn btn-sm btn-primary" onclick="adminSetTokens('{{ t.id }}','{{ t.name|e }}')">Poner 🪙</button>
+                            <button class="btn btn-sm btn-warning" onclick="adminAddTokens('{{ t.id }}','{{ t.name|e }}')">Sumar 🪙</button>
+                            <button class="btn btn-sm btn-ghost" onclick="adminCompleteMission('{{ t.id }}','{{ t.name|e }}')">🎯 Misión</button>
+                            <button class="btn btn-sm btn-danger" onclick="adminResetMissions('{{ t.id }}','{{ t.name|e }}')">Reset misiones</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <div class="empty">No hay datos de tokens</div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
     <div class="toast" id="toast">Listo</div>
@@ -295,6 +324,45 @@
             const r = await fetch('/admin/clear-all-history', { method: 'POST' });
             mostrarToast('Todos los historiales borrados');
             setTimeout(() => location.reload(), 1000);
+        }
+
+        async function adminSetTokens(uid, name) {
+            const amount = prompt(`🪙 Nuevo saldo para ${name}:`, '0');
+            if (amount === null) return;
+            const r = await fetch('/admin/tokens/set', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({user_id: uid, amount: parseInt(amount)||0}) });
+            const d = await r.json();
+            if (d.ok) { mostrarToast(`✅ ${name} ahora tiene ${d.balance} 🪙`); setTimeout(() => location.reload(), 1000); }
+            else { mostrarToast('Error: ' + (d.error||'desconocido'), true); }
+        }
+
+        async function adminAddTokens(uid, name) {
+            const amount = prompt(`➕ Sumar tokens a ${name}:`, '100');
+            if (amount === null) return;
+            const r = await fetch('/admin/tokens/add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({user_id: uid, amount: parseInt(amount)||0}) });
+            const d = await r.json();
+            if (d.ok) { mostrarToast(`✅ +${d.added} 🪙 para ${name} (ahora ${d.balance})`); setTimeout(() => location.reload(), 1000); }
+            else { mostrarToast('Error: ' + (d.error||'desconocido'), true); }
+        }
+
+        async function adminCompleteMission(uid, name) {
+            const missions = {{ daily_missions|tojson }};
+            let opts = missions.map((m,i) => `${i+1}. ${m.icon} ${m.name}`);
+            const pick = prompt(`🎯 Elegí misión para ${name} (número):\n\n${opts.join('\n')}`, '1');
+            if (!pick) return;
+            const idx = parseInt(pick) - 1;
+            if (idx < 0 || idx >= missions.length) { mostrarToast('Número inválido', true); return; }
+            const r = await fetch('/admin/tokens/complete-mission', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({user_id: uid, mission: missions[idx].id}) });
+            const d = await r.json();
+            if (d.ok) { mostrarToast(`✅ Misión "${missions[idx].name}" completada para ${name} (+${d.reward} 🪙)`); setTimeout(() => location.reload(), 1000); }
+            else { mostrarToast(d.error||'Error', true); }
+        }
+
+        async function adminResetMissions(uid, name) {
+            if (!confirm(`¿Resetear todas las misiones de ${name}?`)) return;
+            const r = await fetch('/admin/tokens/reset-missions', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({user_id: uid}) });
+            const d = await r.json();
+            if (d.ok) { mostrarToast(`✅ Misiones de ${name} reseteadas`); setTimeout(() => location.reload(), 1000); }
+            else { mostrarToast('Error: ' + (d.error||'desconocido'), true); }
         }
 
         async function verModelo(modelo) {

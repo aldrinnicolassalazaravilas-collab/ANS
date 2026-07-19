@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Mail</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;height:100dvh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#075e54;border-bottom:1px solid #0a7a6e}
+header img{width:28px;height:28px;filter:brightness(10)}
+header h1{font-size:17px;font-weight:600;flex:1;color:white}
+header button{padding:6px 14px;border-radius:6px;border:none;background:#25d366;color:white;font-weight:600;cursor:pointer;font-size:12px;white-space:nowrap}
+header a{color:white;text-decoration:none;font-size:12px;opacity:0.8}
+.chat-container{display:flex;flex:1;overflow:hidden}
+.contact-list{width:300px;background:#111b28;border-right:1px solid #1a2744;overflow-y:auto;flex-shrink:0}
+.contact-list .search{padding:8px;border-bottom:1px solid #1a2744}
+.contact-list .search input{width:100%;padding:8px 12px;border-radius:8px;border:none;background:#1a2744;color:#e2e8f0;font-size:12px;outline:none}
+.contact{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #1a2744;transition:.15s}
+.contact:hover{background:#1a2744}
+.contact.act{background:#075e5433;border-left:3px solid #25d366}
+.contact .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden;background:#1a2744}
+.contact .avatar img{width:100%;height:100%;object-fit:cover}
+.contact .info{flex:1;min-width:0}
+.contact .info .name{font-size:13px;font-weight:600}
+.contact .info .email{font-size:10px;color:#4a5568;overflow:hidden;text-overflow:ellipsis}
+.contact .info .last{font-size:11px;color:#98a8c3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.contact .badge{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.contact .badge.online{background:#22c55e}
+.contact .badge.offline{background:#4a5568}
+.chat-area{flex:1;display:flex;flex-direction:column;background:#0a0f1a;min-width:0}
+.chat-header{padding:10px 16px;background:#1a2744;border-bottom:1px solid #2d4a7a;display:flex;align-items:center;gap:10px}
+.chat-header .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;overflow:hidden;background:#1a2744}
+.chat-header .avatar img{width:100%;height:100%;object-fit:cover}
+.chat-header .name{font-size:14px;font-weight:600}
+.chat-header .status{font-size:11px;color:#25d366}
+.chat-msg{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:6px}
+.msg-bubble{max-width:75%;padding:8px 14px;border-radius:12px;font-size:13px;line-height:1.4;position:relative;word-wrap:break-word}
+.msg-bubble.sent{background:#075e54;align-self:flex-end;border-bottom-right-radius:4px}
+.msg-bubble.recv{background:#1a2744;align-self:flex-start;border-bottom-left-radius:4px}
+.msg-bubble .time{font-size:10px;color:#98a8c3;text-align:right;margin-top:4px}
+.chat-input{display:flex;gap:8px;padding:10px 16px;background:#1a2744;border-top:1px solid #2d4a7a}
+.chat-input input{flex:1;padding:10px 14px;border-radius:24px;border:none;background:#0a0f1a;color:#e2e8f0;font-size:13px;outline:none;min-width:0}
+.chat-input input::placeholder{color:#4a5568}
+.chat-input button{width:40px;height:40px;border-radius:50%;border:none;background:#25d366;color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.attach-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#98a8c3;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;transition:all .2s;position:relative}
+.attach-btn:hover{background:rgba(255,255,255,0.08);color:var(--text)}
+.attach-menu{position:absolute;bottom:48px;left:0;background:#1a2744;border:1px solid #2d4a7a;border-radius:12px;padding:6px;display:none;z-index:100;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+.attach-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:8px;border:none;background:transparent;color:var(--text);font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.attach-menu button:hover{background:rgba(255,255,255,0.06)}
+.empty-chat{flex:1;display:flex;align-items:center;justify-content:center;color:#4a5568;font-size:14px;flex-direction:column;gap:8px;padding:20px;text-align:center}
+.empty-chat p{font-size:48px}
+.loading-msg{text-align:center;padding:20px;color:#4a5568;font-size:12px}
+@media(max-width:768px){
+.contact-list{width:100%}.chat-area{display:none}.chat-area.show{display:flex}.chat-area.show .empty-chat{display:flex}
+header{padding:10px 12px;gap:8px}header h1{font-size:15px}.contact-list .search input{font-size:14px}
+}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_mail.svg" alt="Mail"><h1>ANS Mail</h1>
+<button onclick="showNewChat()">✏️ Nuevo</button>
+<a href="/herramientas">←</a>
+</header>
+<div class="chat-container">
+<div class="contact-list" id="contact-list">
+<div class="search"><input id="search-input" placeholder="Buscar contacto..." oninput="renderContacts()"></div>
+<div id="contacts"><div class="loading-msg">Cargando contactos...</div></div>
+</div>
+<div class="chat-area" id="chat-area">
+<div class="empty-chat" id="empty-chat"><p>💬</p>Selecciona un chat<br><span style="font-size:12px">o crea uno nuevo con ✏️ Nuevo</span></div>
+<div id="chat-view" style="display:none;flex-direction:column;height:100%">
+<div class="chat-header" style="cursor:pointer" onclick="mobileBack()" id="chat-header">
+<div class="avatar" id="chat-avatar"></div>
+<div><div class="name" id="chat-name"></div><div class="status" id="chat-status">conectado</div></div>
+</div>
+<div class="chat-msg" id="chat-msg"><div class="loading-msg">Cargando mensajes...</div></div>
+<div class="chat-input" style="position:relative">
+<div style="position:relative">
+<button class="attach-btn" onclick="toggleAttachMenu()" id="attach-btn">📎</button>
+<div class="attach-menu" id="attach-menu">
+<button onclick="attachFile()">📎 Adjuntar archivo</button>
+<button onclick="giftTokens()">🎁 Regalar tokens</button>
+</div>
+</div>
+<input id="msg-input" placeholder="Escribe un mensaje..." onkeydown="if(event.key==='Enter')sendMsg()">
+<button onclick="sendMsg()">▶</button>
+</div>
+<input type="file" id="attach-input" style="display:none">
+</div>
+</div>
+</div>
+<script>
+let contacts=[],currentContact=null,googleUsers=[],pollTimer=null;
+async function api(url,opts={}){
+try{const r=await fetch(url,{headers:{'Content-Type':'application/json',...opts.headers},...opts});return await r.json()}catch(e){return null}}
+async function loadContacts(){
+const d=await api('/api/mail/contacts');
+if(d&&d.contacts)contacts=d.contacts;
+renderContacts()}
+async function loadGoogleUsers(){
+const d=await api('/api/mail/users');
+if(d&&d.users)googleUsers=d.users}
+function getUserByEmail(email){
+if(!email)return null;const e=email.toLowerCase().trim();
+return googleUsers.find(u=>u.email&&u.email.toLowerCase()===e)||null}
+function renderContacts(){
+const q=document.getElementById('search-input').value.toLowerCase();
+const l=document.getElementById('contacts');
+if(contacts.length===0){l.innerHTML='<div class="empty-chat" style="display:flex;height:100%"><p>📭</p>Sin contactos<br><span style="font-size:12px">Usa ✏️ Nuevo para agregar</span></div>';return}
+l.innerHTML='';
+contacts.filter(c=>c.name.toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)).forEach(c=>{
+const d=document.createElement('div');d.className='contact'+(currentContact?.id===c.id?' act':'');
+const msgs=conversaciones[c.id]||[];
+const last=msgs.length>0?msgs[msgs.length-1]:{};
+const gu=c.email?getUserByEmail(c.email):null;
+const online=!!gu;
+const hasUnread=msgs.some(m=>m.unread&&m.from!=='me');
+const avHtml=gu&&gu.picture?`<img src="${gu.picture}" onerror="this.style.display='none'">`:c.picture?`<img src="${c.picture}" onerror="this.style.display='none'">`:(gu?gu.name[0]||'👤':c.name[0]||'👤');
+d.innerHTML=`<div class="avatar">${avHtml}${hasUnread?'<span style="position:relative;top:-8px;left:-4px;font-size:8px">🔴</span>':''}</div><div class="info"><div class="name">${c.name}</div>${c.email?`<div class="email">${c.email}</div>`:''}<div class="last">${last.text||'Sin mensajes'}</div></div><div class="badge ${online?'online':'offline'}"></div>`;
+d.onclick=()=>selectContact(c);l.appendChild(d)})}
+var conversaciones={};
+async function selectContact(c,noMobile){
+currentContact=c;
+document.getElementById('empty-chat').style.display='none';
+document.getElementById('chat-view').style.display='flex';
+const gu=c.email?getUserByEmail(c.email):null;
+const avHtml=gu&&gu.picture?`<img src="${gu.picture}">`:c.picture?`<img src="${c.picture}">`:(c.email?c.name[0]||'👤':c.name[0]||'👤');
+document.getElementById('chat-avatar').innerHTML=avHtml;
+document.getElementById('chat-name').textContent=c.name;
+const online=!!(c.email&&gu);
+document.getElementById('chat-status').textContent=online?'🟢 conectado':'⚪ offline';
+document.getElementById('chat-status').style.color=online?'#22c55e':'#4a5568';
+if(!noMobile&&window.innerWidth<=768){
+document.getElementById('contact-list').style.display='none';
+document.getElementById('chat-area').classList.add('show')
+}
+await loadMsgs(c.id);renderContacts()}
+function mobileBack(){
+if(window.innerWidth<=768){
+document.getElementById('contact-list').style.display='block';
+document.getElementById('chat-area').classList.remove('show')
+}}
+async function loadMsgs(contactId){
+const l=document.getElementById('chat-msg');
+l.innerHTML='<div class="loading-msg">Cargando mensajes...</div>';
+const d=await api('/api/mail/messages/'+contactId);
+if(d&&d.messages){
+conversaciones[contactId]=d.messages;
+renderMsgs()}else{l.innerHTML='<div class="loading-msg">Error al cargar mensajes</div>'}}
+function renderMsgs(){
+const l=document.getElementById('chat-msg');l.innerHTML='';
+const msgs=conversaciones[currentContact?.id]||[];
+if(msgs.length===0){l.innerHTML='<div class="empty-chat" style="display:flex"><p>💬</p>No hay mensajes aún</div>';return}
+msgs.forEach(m=>{
+const sent=m.from==='me';
+const d=document.createElement('div');d.className='msg-bubble '+(sent?'sent':'recv');
+let html=m.text||'';
+const fileMatch=html.match(/📎\s+(.+?)\s+(\/api\/chat\/file\/\S+)/);
+if(fileMatch){
+const fileName=fileMatch[1],fileUrl=fileMatch[2];
+const ext=fileName.split('.').pop().toLowerCase();
+if(['jpg','jpeg','png','gif','webp','svg'].includes(ext)){html=`📎 ${fileName}<br><img src="${fileUrl}" style="max-width:100%;border-radius:8px;margin-top:4px" onclick="window.open('${fileUrl}','_blank')">`}
+else if(['mp4','webm','ogg'].includes(ext)){html=`📎 ${fileName}<br><video src="${fileUrl}" controls style="max-width:100%;border-radius:8px;margin-top:4px"></video>`}
+else if(['mp3','wav','ogg'].includes(ext)){html=`📎 ${fileName}<br><audio src="${fileUrl}" controls style="max-width:100%;margin-top:4px"></audio>`}
+else{html=`📎 <a href="${fileUrl}" target="_blank" style="color:#25d366;text-decoration:underline">${fileName}</a>`}}
+d.innerHTML=`${html}<div class="time">${m.time||''}</div>`;l.appendChild(d)});
+l.scrollTop=l.scrollHeight}
+async function sendMsg(){
+const input=document.getElementById('msg-input');let text=input.value.trim();
+if(!text&&!attachFileData)return;
+if(!currentContact)return;
+if(attachFileData){
+const c=contacts.find(x=>x.id===currentContact.id);
+const fileText='📎 '+attachFileData.name+' /api/chat/file/'+attachFileData.file_id;
+if(c){if(!conversaciones[c.id])conversaciones[c.id]=[];conversaciones[c.id].push({from:'me',text:fileText,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});renderMsgs();renderContacts()}
+const d=await api('/api/mail/messages/'+currentContact.id,{method:'POST',body:JSON.stringify({text:fileText})});
+attachFileData=null;input.value='';
+if(!d||d.error){alert('Error al enviar');return}
+try{await fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_mail'})})}catch(e){}
+startPolling();return}
+text=input.value.trim();
+if(!text)return;
+input.value='';
+// Mostrar inmediatamente
+const c=contacts.find(x=>x.id===currentContact.id);
+if(c){if(!conversaciones[c.id])conversaciones[c.id]=[];conversaciones[c.id].push({from:'me',text,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});renderMsgs();renderContacts()}
+// Enviar al server
+const d=await api('/api/mail/messages/'+currentContact.id,{method:'POST',body:JSON.stringify({text})});
+if(!d||d.error){alert('Error al enviar');return}
+// Completar mision use_mail
+try{await fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_mail'})})}catch(e){}
+// Polling loop
+startPolling()}
+async function pollIncoming(){
+if(!currentContact)return;
+const d=await api('/api/mail/poll');
+if(d&&d.incoming){
+let newMsg=false;
+for(const uid in d.incoming){
+// Auto-add contact if needed
+const contactInfo=d.contacts[uid];
+if(uid&&!contacts.some(c=>c.id===uid)){
+const newC={id:uid,name:contactInfo?.name||'Usuario',email:contactInfo?.email||'',picture:contactInfo?.picture||'',created:new Date().toISOString()};
+contacts.push(newC);
+if(!conversaciones[uid])conversaciones[uid]=[];
+if(document.getElementById('search-input'))renderContacts();
+newMsg=true}
+// Add messages
+if(!conversaciones[uid])conversaciones[uid]=[];
+const existingLen=conversaciones[uid].length;
+const allMsgs=await api('/api/mail/messages/'+uid);
+if(allMsgs&&allMsgs.messages&&allMsgs.messages.length>existingLen){
+conversaciones[uid]=allMsgs.messages;
+if(currentContact&&currentContact.id===uid){renderMsgs();newMsg=true}
+renderContacts()}
+}
+if(newMsg&&window.Notification&&Notification.permission==='granted'){new Notification('📬 Nuevo mensaje en ANS Mail')}}
+}
+function startPolling(){
+if(pollTimer)clearInterval(pollTimer);
+pollTimer=setInterval(pollIncoming,5000)}
+async function showNewChat(){
+const email=prompt('Correo del contacto (Gmail):');if(!email||!email.trim())return;
+const e=email.trim().toLowerCase();
+const gu=getUserByEmail(e);
+if(gu){
+if(contacts.some(c=>c.email===gu.email)){alert('Este contacto ya existe');return}
+const d=await api('/api/mail/contacts',{method:'POST',body:JSON.stringify({email:gu.email})});
+if(d&&d.contact){contacts.push(d.contact);if(!conversaciones[d.contact.id])conversaciones[d.contact.id]=[];renderContacts();selectContact(d.contact)}
+return}
+if(confirm('No encontramos un usuario ANS con ese correo.\n¿Agregar contacto manualmente?')){
+const name=prompt('Nombre:',e.split('@')[0])||e;
+const d=await api('/api/mail/contacts',{method:'POST',body:JSON.stringify({email:e,name})});
+if(d&&d.contact){contacts.push(d.contact);if(!conversaciones[d.contact.id])conversaciones[d.contact.id]=[];renderContacts();selectContact(d.contact)}}}
+// Attach menu
+var attachFileData = null;
+function toggleAttachMenu(){
+const m=document.getElementById('attach-menu');
+m.style.display=m.style.display==='block'?'none':'block'}
+document.addEventListener('click',function(e){const m=document.getElementById('attach-menu');if(e.target.closest('#attach-btn'))return;if(m)m.style.display='none'})
+function attachFile(){
+document.getElementById('attach-menu').style.display='none';
+document.getElementById('attach-input').click()}
+document.getElementById('attach-input').onchange=async function(e){
+const file=e.target.files[0];if(!file)return;
+const fd=new FormData();fd.append('file',file);
+try{
+const r=await fetch('/api/chat/upload',{method:'POST',body:fd});
+const d=await r.json();
+if(d&&d.ok){
+attachFileData=d;
+document.getElementById('msg-input').value='📎 '+file.name;
+alert('✅ Archivo listo: '+file.name);
+}else{alert('Error: '+(d.error||'desconocido'))}
+}catch(e){alert('Error de red')}
+e.target.value=''}
+function giftTokens(){
+document.getElementById('attach-menu').style.display='none';
+if(!currentContact){alert('Selecciona un contacto primero');return}
+const amount=prompt('🎁 Regalar tokens a '+currentContact.name+'\nCantidad:');
+if(!amount||isNaN(amount)||parseInt(amount)<=0)return;
+const email=currentContact.email||prompt('Email del contacto:');
+if(!email)return;
+(async()=>{
+const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'regalar '+email.trim()+' '+parseInt(amount),modelo:'gapi'})});
+const d=await r.json();
+if(d&&d.respuesta){
+if(d.respuesta.includes('🎁')){
+const c=contacts.find(x=>x.id===currentContact.id);
+if(c){const notif='🎁 Te regalaron '+parseInt(amount)+' 🪙!';
+if(!conversaciones[c.id])conversaciones[c.id]=[];
+conversaciones[c.id].push({from:'me',text:notif,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+renderMsgs();renderContacts();
+await api('/api/mail/messages/'+currentContact.id,{method:'POST',body:JSON.stringify({text:notif})})}
+alert('✅ '+d.respuesta);
+}else{alert(d.respuesta)}
+}else{alert('Error al procesar regalo')}
+})()}
+function sendMsgWithText(text){
+const input=document.getElementById('msg-input');
+input.value=text;sendMsg()}
+// Init
+loadGoogleUsers();loadContacts();startPolling();
+// Request notification permission
+if('Notification'in window&&Notification.permission==='default'){Notification.requestPermission()}
+</script>
+</body>
+</html>

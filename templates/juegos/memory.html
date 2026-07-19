@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>Memory - ANS Games</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.status{font-size:18px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:340px}
+.card{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:36px;background:#1a2744;border:2px solid #2d4a7a;border-radius:12px;cursor:pointer;transition:.2s;user-select:none}
+.card:hover{border-color:#fbbf24}
+.card.flipped{background:#fbbf24;border-color:#fbbf24}
+.card.matched{background:#22c55e;border-color:#22c55e;cursor:default;opacity:0.8}
+.card.matched:hover{border-color:#22c55e}
+.reset{padding:10px 28px;border-radius:10px;border:none;background:#fbbf24;color:#0f1624;font-weight:600;cursor:pointer;font-size:14px;margin-top:16px}
+.moves{font-size:14px;color:#98a8c3;margin-bottom:8px}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_games.svg" alt="Games"><h1>🧠 Memory</h1>
+<a href="/games">← Panel</a>
+</header>
+<div class="content">
+<div class="status" id="status">Encuentra los pares</div>
+<div class="moves">Movimientos: <b id="moves" style="color:#fbbf24">0</b> | Pares: <b id="pairs" style="color:#22c55e">0</b>/8</div>
+<div class="grid" id="grid"></div>
+<button class="reset" onclick="initMemory()">🔄 Reiniciar</button>
+</div>
+<script>
+const emojis=['🍎','🍋','🍇','🍒','🍓','🍊','🍉','🍌'];
+let cards=[],flipped=[],matched=[],moves=0,pairs=0,locked=false;
+function initMemory(){
+cards=[...emojis,...emojis];for(let i=cards.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]]}
+flipped=[];matched=[];moves=0;pairs=0;locked=false;document.getElementById('moves').textContent='0';document.getElementById('pairs').textContent='0/8';document.getElementById('status').textContent='Encuentra los pares';render()}
+function render(){const g=document.getElementById('grid');g.innerHTML='';cards.forEach((emoji,i)=>{const c=document.createElement('div');c.className='card';if(matched.includes(i))c.classList.add('matched');else if(flipped.includes(i))c.classList.add('flipped')
+c.textContent=matched.includes(i)||flipped.includes(i)?emoji:'?';c.onclick=()=>flip(i);g.appendChild(c)})}
+function flip(i){if(locked||matched.includes(i)||flipped.includes(i)||flipped.length>=2)return;flipped.push(i);moves++;document.getElementById('moves').textContent=moves;render()
+if(flipped.length===2){locked=true;const [a,b]=flipped;if(cards[a]===cards[b]){matched.push(a,b);pairs++;document.getElementById('pairs').textContent=pairs+'/8';flipped=[];locked=false
+if(matched.length===cards.length){const score=Math.max(100,Math.floor(800/moves)*10);const cur=parseInt(localStorage.getItem('ans_score_memory')||'0');if(score>cur)localStorage.setItem('ans_score_memory',score);document.getElementById('status').textContent='🎉 Ganaste! '+moves+' movimientos (score:'+score+')';fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_games'})}).catch(()=>{});return}render()}
+else{setTimeout(()=>{flipped=[];locked=false;render()},800)}}}
+initMemory()
+</script>
+</body>
+</html>

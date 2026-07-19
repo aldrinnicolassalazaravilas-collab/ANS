@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Weather</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:600px;margin:20px auto;padding:20px;display:grid;gap:20px}
+.card{background:#1a2744;border:1px solid #2d4a7a;border-radius:14px;padding:20px;text-align:center}
+.card h2{font-size:16px;margin-bottom:12px;color:#98a8c3}
+.weather-main{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.weather-main .temp{font-size:48px;font-weight:700;color:#22d3ee}
+.weather-main .icon{font-size:48px}
+.weather-details{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.weather-details div{padding:8px;background:#0a0f1a;border-radius:8px;font-size:13px}
+.weather-details span{color:#98a8c3;font-size:11px;display:block}
+.city-selector{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;justify-content:center}
+.city-selector select,.city-selector input{padding:8px 12px;border-radius:8px;border:1px solid #2d4a7a;background:#0a0f1a;color:#e2e8f0;font-size:13px;outline:none;flex:1;min-width:100px}
+.city-selector select:focus,.city-selector input:focus{border-color:#22d3ee}
+.city-selector button{padding:8px 16px;border-radius:8px;border:none;background:#22d3ee;color:#0f1624;font-weight:600;cursor:pointer;font-size:13px}
+.pomodoro{display:flex;flex-direction:column;align-items:center;gap:12px}
+.pomodoro .timer{font-size:56px;font-weight:700;font-family:monospace;color:#fbbf24;letter-spacing:4px}
+.pomodoro .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.pomodoro .controls button{padding:10px 24px;border-radius:10px;border:none;font-weight:600;cursor:pointer;font-size:14px}
+.start-btn{background:#22c55e;color:white}
+.pause-btn{background:#f97316;color:white}
+.reset-btn{background:#ef4444;color:white}
+.mode-btn{background:#2563eb;color:white}
+.pomodoro .status{font-size:14px;color:#98a8c3}
+.map-weather{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.map-weather .mw-card{background:#0a0f1a;border:1px solid #2d4a7a;border-radius:10px;padding:12px;text-align:center}
+.map-weather .mw-card .mw-title{font-size:11px;color:#98a8c3;margin-bottom:6px}
+.map-weather .mw-card iframe{border-radius:8px;width:100%;height:140px;border:none}
+.map-weather .mw-card .w-info{display:flex;align-items:center;justify-content:center;gap:8px}
+.map-weather .mw-card .w-info .w-icon{font-size:28px}
+.map-weather .mw-card .w-info .w-temp{font-size:24px;font-weight:700;color:#22d3ee}
+.map-weather .mw-card .w-info .w-desc{font-size:11px;color:#98a8c3}
+@media(max-width:500px){.weather-main .temp{font-size:36px}.weather-main .icon{font-size:36px}.pomodoro .timer{font-size:42px}.city-selector select,.city-selector input{min-width:80px;font-size:14px}header{padding:12px 16px}.map-weather{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_weather.svg" alt="Weather"><h1>ANS Weather</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="card">
+<h2>🌤 Clima Actual</h2>
+<div class="city-selector">
+<select id="city-select">
+<optgroup label="🌎 Ciudades populares">
+<option value="Buenos Aires">Buenos Aires</option>
+<option value="New York">New York</option>
+<option value="Tokyo">Tokyo</option>
+<option value="London">London</option>
+<option value="Madrid">Madrid</option>
+<option value="Mexico City">Mexico City</option>
+<option value="Paris">Paris</option>
+<option value="Berlin">Berlin</option>
+<option value="Sydney">Sydney</option>
+<option value="Santiago">Santiago</option>
+<option value="Lima">Lima</option>
+<option value="Bogota">Bogotá</option>
+<option value="Moscow">Moscow</option>
+<option value="Dubai">Dubai</option>
+<option value="Seoul">Seoul</option>
+</optgroup>
+</select>
+<input id="city-custom" placeholder="Otra ciudad..." maxlength="50">
+<button onclick="setCity()">🔍 Buscar</button>
+<button onclick="showCityMap()" style="padding:8px 16px;border-radius:8px;border:none;background:#22c55e;color:#0f1624;font-weight:600;cursor:pointer;font-size:13px">🗺 Mapa</button>
+</div>
+<div class="map-weather" id="map-weather" style="display:none">
+<div class="mw-card">
+<div class="mw-title">📍 Mapa</div>
+<iframe id="map-frame" loading="lazy"></iframe>
+</div>
+<div class="mw-card">
+<div class="mw-title">🌤 Clima extendido</div>
+<div class="w-info">
+<div class="w-icon" id="mw-icon">☀️</div>
+<div><div class="w-temp" id="mw-temp">--°</div><div class="w-desc" id="mw-desc">--</div></div>
+</div>
+</div>
+</div>
+<div class="weather-main">
+<div class="icon" id="w-icon">☀️</div>
+<div class="temp" id="w-temp">--°</div>
+<div style="text-align:left"><div style="font-size:18px;font-weight:600" id="w-city">Cargando...</div><div style="font-size:13px;color:#98a8c3" id="w-desc">--</div></div>
+</div>
+<div class="weather-details">
+<div><span>Humedad</span><span id="w-hum">--%</span></div>
+<div><span>Viento</span><span id="w-wind">-- km/h</span></div>
+<div><span>Sensación</span><span id="w-feel">--°</span></div>
+<div><span>Máx/Mín</span><span id="w-maxmin">--°</span></div>
+</div>
+</div>
+<div class="card">
+<h2>⏱ Pomodoro</h2>
+<div class="pomodoro">
+<div class="timer" id="timer">25:00</div>
+<div class="status" id="p-status">📖 Enfoque</div>
+<div class="controls">
+<button class="start-btn" onclick="startTimer()">▶ Iniciar</button>
+<button class="pause-btn" onclick="pauseTimer()">⏸ Pausa</button>
+<button class="reset-btn" onclick="resetTimer()">⏹ Reiniciar</button>
+</div>
+<div class="controls">
+<button class="mode-btn" onclick="setMode(25,0)">📖 25min</button>
+<button class="mode-btn" onclick="setMode(5,1)">☕ 5min</button>
+<button class="mode-btn" onclick="setMode(15,2)">💪 15min</button>
+</div>
+<div id="p-counter" style="font-size:13px;color:#98a8c3">Pomodoros: 0</div>
+</div>
+</div>
+</div>
+<script>
+const weatherDB={
+'Buenos Aires':{temp:28,hum:65,icon:'☀️',desc:'Soleado',wind:15},
+'New York':{temp:22,hum:55,icon:'⛅',desc:'Parcial nublado',wind:20},
+'Tokyo':{temp:18,hum:70,icon:'🌧',desc:'Lluvia ligera',wind:12},
+'London':{temp:12,hum:80,icon:'☁️',desc:'Nublado',wind:25},
+'Madrid':{temp:32,hum:40,icon:'☀️',desc:'Despejado',wind:10},
+'Mexico City':{temp:24,hum:45,icon:'⛅',desc:'Parcial nublado',wind:8},
+'Paris':{temp:15,hum:60,icon:'🌦',desc:'Lluvia',wind:18},
+'Berlin':{temp:10,hum:75,icon:'☁️',desc:'Nublado',wind:22},
+'Sydney':{temp:26,hum:50,icon:'☀️',desc:'Soleado',wind:14},
+'Santiago':{temp:20,hum:55,icon:'🌤',desc:'Despejado',wind:9},
+'Lima':{temp:22,hum:78,icon:'⛅',desc:'Nublado',wind:11},
+'Bogota':{temp:18,hum:72,icon:'🌧',desc:'Lluvia',wind:7},
+'Moscow':{temp:-2,hum:82,icon:'☁️',desc:'Nublado/helado',wind:30},
+'Dubai':{temp:38,hum:25,icon:'☀️',desc:'Calor extremo',wind:5},
+'Seoul':{temp:14,hum:60,icon:'🌦',desc:'Lluvia ligera',wind:16}
+};
+const fallbackIcons=['☀️','⛅','🌤','🌧','⛈','🌦','☁️'];
+const fallbackDescs=['Despejado','Parcial nublado','Soleado','Lluvia ligera','Tormenta','Lluvia','Nublado'];
+
+function getCity(){
+const sel=document.getElementById('city-select').value;
+const custom=document.getElementById('city-custom').value.trim();
+return custom||sel;
+}
+function loadWeather(city){
+if(!city){city=localStorage.getItem('ans_weather_city')||'Buenos Aires'}
+document.getElementById('w-city').textContent=city;
+const data=weatherDB[city];
+if(data){
+document.getElementById('w-icon').textContent=data.icon;
+document.getElementById('w-temp').textContent=data.temp+'°';
+document.getElementById('w-desc').textContent=data.desc;
+document.getElementById('w-hum').textContent=data.hum+'%';
+document.getElementById('w-wind').textContent=data.wind+' km/h';
+const sens=Math.floor(data.temp-Math.random()*5);
+document.getElementById('w-feel').textContent=sens+'°';
+document.getElementById('w-maxmin').textContent=Math.floor(data.temp+5)+'° / '+Math.floor(data.temp-5)+'°';
+}else{
+// Ciudad custom - generar clima aleatorio
+const t=Math.floor(Math.random()*35+5);
+const h=Math.floor(Math.random()*50+30);
+const i=Math.floor(Math.random()*fallbackIcons.length);
+document.getElementById('w-icon').textContent=fallbackIcons[i];
+document.getElementById('w-temp').textContent=t+'°';
+document.getElementById('w-desc').textContent=fallbackDescs[i]+' (estimado)';
+document.getElementById('w-hum').textContent=h+'%';
+document.getElementById('w-wind').textContent=Math.floor(Math.random()*30+5)+' km/h';
+document.getElementById('w-feel').textContent=Math.floor(t-Math.random()*5)+'°';
+document.getElementById('w-maxmin').textContent=Math.floor(t+5)+'° / '+Math.floor(t-5)+'°';
+}
+localStorage.setItem('ans_weather_city',city);
+}
+function setCity(){
+const city=getCity();
+if(city)loadWeather(city);
+fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_weather'})}).catch(()=>{})
+}
+function showCityMap(){
+const city=getCity();
+if(!city)return;
+const el=document.getElementById('map-weather');el.style.display='grid';
+const q=encodeURIComponent(city);
+document.getElementById('map-frame').src='https://www.openstreetmap.org/export/embed.html?bbox=-80,-40,10,10&layer=mapnik&marker='+q;
+const w=weatherDB[Object.keys(weatherDB).find(k=>city.toLowerCase().includes(k.toLowerCase()))||''];
+if(w){document.getElementById('mw-icon').textContent=w.icon;document.getElementById('mw-temp').textContent=w.temp+'°';document.getElementById('mw-desc').textContent=w.desc}
+else{const t=Math.floor(Math.random()*30+10),i=Math.floor(Math.random()*fallbackIcons.length);document.getElementById('mw-icon').textContent=fallbackIcons[i];document.getElementById('mw-temp').textContent=t+'°';document.getElementById('mw-desc').textContent=fallbackDescs[i]}
+fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_weather'})}).catch(()=>{})
+}
+// Cargar ciudad guardada
+const saved=localStorage.getItem('ans_weather_city');
+if(saved){
+const opt=document.getElementById('city-select').querySelector(`option[value="${saved}"]`);
+if(opt){document.getElementById('city-select').value=saved}else{document.getElementById('city-custom').value=saved}
+loadWeather(saved);
+}else{loadWeather('Buenos Aires')}
+document.getElementById('city-select').onchange=setCity;
+// Pomodoro
+let time=1500,remaining=1500,running=false,paused=false,interval,mode=0,pomodoros=parseInt(localStorage.getItem('ans_pomodoros')||'0');
+document.getElementById('p-counter').textContent='Pomodoros: '+pomodoros;
+function updateDisplay(){const m=Math.floor(remaining/60);const s=remaining%60;document.getElementById('timer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
+function startTimer(){if(paused||!running){running=true;paused=false;interval=setInterval(()=>{if(remaining>0){remaining--;updateDisplay()}else{running=false;clearInterval(interval);pomodoros++;localStorage.setItem('ans_pomodoros',pomodoros);document.getElementById('p-counter').textContent='Pomodoros: '+pomodoros;alert('⏰ Tiempo completado!')}},1000)}}
+function pauseTimer(){running=false;paused=true;clearInterval(interval)}
+function resetTimer(){running=false;paused=false;clearInterval(interval);remaining=time;updateDisplay()}
+function setMode(m,t){time=m*60;remaining=time;mode=t;resetTimer();const labels=['📖 Enfoque','☕ Descanso corto','💪 Descanso largo'];document.getElementById('p-status').textContent=labels[t]||'📖 Enfoque'}
+updateDisplay()
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Games</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.scoreboard{max-width:700px;margin:16px auto 0;padding:0 20px}
+.scoreboard .card{background:linear-gradient(135deg,#1a2744,#0f1624);border:1px solid #fbbf24;border-radius:14px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.scoreboard .card .label{font-size:13px;color:#98a8c3}
+.scoreboard .card .pts{font-size:36px;font-weight:700;color:#fbbf24;flex-shrink:0}
+.scoreboard .card .pts span{font-size:14px;color:#98a8c3;font-weight:400;margin-left:4px}
+.game-scores{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.game-scores .gs{text-align:center;font-size:11px;padding:4px 8px;background:#0a0f1a;border-radius:8px;min-width:48px}
+.game-scores .gs .val{display:block;font-size:16px;font-weight:600;color:#e2e8f0}
+.game-scores .gs .lbl{display:block;font-size:8px;color:#4a5568;text-transform:uppercase}
+.content{max-width:700px;margin:20px auto;padding:0 20px 20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#1a2744;border:1px solid #2d4a7a;border-radius:16px;padding:24px;text-align:center;cursor:pointer;transition:.2s;text-decoration:none;color:#e2e8f0}
+.card:hover{transform:translateY(-4px);border-color:var(--c)}
+.card .icon{font-size:48px;margin-bottom:8px}
+.card .name{font-size:16px;font-weight:600}
+.card .desc{font-size:12px;color:#98a8c3;margin-top:4px}
+.card .diff{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.card .hs{font-size:11px;color:#fbbf24;margin-top:4px}
+@media(max-width:500px){.grid{grid-template-columns:1fr}.card{padding:20px}.card .icon{font-size:36px}.scoreboard .card{flex-direction:column;text-align:center}.scoreboard .card .pts{font-size:28px}header{padding:12px 16px}}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_games.svg" alt="Games"><h1>ANS Games</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="scoreboard">
+<div class="card">
+<div><div class="label">🏆 Score Global</div><div class="game-scores" id="game-scores"></div></div>
+<div class="pts" id="total-score">0<span>pts</span></div>
+</div>
+</div>
+<div class="content">
+<div class="grid">
+<a class="card" href="/games/tictac" style="--c:#ef4444">
+<div class="icon">❌⭕</div>
+<div class="name">Tres en Línea</div>
+<div class="desc">Juega contra la AI en un clásico gato</div>
+<div class="diff" style="background:#ef444433;color:#ef4444">Fácil</div>
+<div class="hs" id="hs-tictac"></div>
+</a>
+<a class="card" href="/games/snake" style="--c:#22c55e">
+<div class="icon">🐍</div>
+<div class="name">Snake</div>
+<div class="desc">Atrapa la comida y crece sin chocar</div>
+<div class="diff" style="background:#22c55e33;color:#22c55e">Medio</div>
+<div class="hs" id="hs-snake"></div>
+</a>
+<a class="card" href="/games/memory" style="--c:#fbbf24">
+<div class="icon">🧠</div>
+<div class="name">Memory</div>
+<div class="desc">Encuentra los pares de cartas</div>
+<div class="diff" style="background:#fbbf2433;color:#fbbf24">Fácil</div>
+<div class="hs" id="hs-memory"></div>
+</a>
+<a class="card" href="/games/ahorcado" style="--c:#a855f7">
+<div class="icon">💀</div>
+<div class="name">Ahorcado</div>
+<div class="desc">Adivina la palabra antes de que te ahorquen</div>
+<div class="diff" style="background:#a855f733;color:#a855f7">Medio</div>
+<div class="hs" id="hs-ahorcado"></div>
+</a>
+</div>
+</div>
+<script>
+const games=['tictac','snake','memory','ahorcado'];
+function loadScores(){
+let total=0;
+games.forEach(g=>{
+const score=parseInt(localStorage.getItem('ans_score_'+g)||'0');
+total+=score;
+const el=document.getElementById('hs-'+g);
+if(el)el.textContent=score>0?'🏅 Mejor: '+score:'';
+});
+document.getElementById('total-score').innerHTML=total+'<span>pts</span>';
+const gs=document.getElementById('game-scores');gs.innerHTML='';
+games.forEach(g=>{
+const score=parseInt(localStorage.getItem('ans_score_'+g)||'0');
+const labels={tictac:'❌⭕',snake:'🐍',memory:'🧠',ahorcado:'💀'};
+gs.innerHTML+=`<div class="gs"><span class="val">${score}</span><span class="lbl">${labels[g]||g}</span></div>`
+})
+}
+loadScores();
+// Escuchar cambios desde otros tabs
+window.addEventListener('storage',e=>{if(e.key&&e.key.startsWith('ans_score_'))loadScores()});
+</script>
+</body>
+</html>

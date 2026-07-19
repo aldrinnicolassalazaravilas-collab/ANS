@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ name }}</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { background:#0f1624; color:#e2e8f0; font-family:'Poppins',sans-serif; min-height:100vh; }
+        header { display:flex; align-items:center; gap:12px; padding:16px 24px; background:#1a2744; border-bottom:1px solid #2d4a7a; }
+        header img { width:32px; height:32px; }
+        header h1 { font-size:18px; font-weight:600; flex:1; }
+        header a { color:#57a6ff; text-decoration:none; font-size:13px; }
+        header a:hover { text-decoration:underline; }
+        .content { max-width:500px; margin:60px auto; padding:20px; text-align:center; }
+        .content img { width:80px; height:80px; margin-bottom:16px; }
+        .content h2 { font-size:22px; margin-bottom:8px; }
+        .content p { color:#98a8c3; font-size:14px; margin-bottom:24px; }
+        .badge { display:inline-block; padding:8px 20px; border-radius:8px; font-size:13px; font-weight:600; }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="/static/logos/{{ logo }}" alt="{{ name }}">
+        <h1>{{ name }}</h1>
+        <a href="/herramientas">← Herramientas</a>
+    </header>
+    <div class="content">
+        <img src="/static/logos/{{ logo }}" alt="{{ name }}">
+        <h2>{{ name }}</h2>
+        <p>{{ desc }}</p>
+        <div class="badge" style="background:{{ color }};">🚧 Próximamente</div>
+    </div>
+</body>
+</html>

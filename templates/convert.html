@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Convert</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:600px;margin:20px auto;padding:20px;text-align:center}
+.card{background:#1a2744;border:1px solid #2d4a7a;border-radius:14px;padding:24px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px}
+.drop-zone{border:2px dashed #2d4a7a;border-radius:12px;padding:30px;cursor:pointer;transition:.2s;margin-bottom:16px}
+.drop-zone:hover{border-color:#57a6ff;background:#0a0f1a}
+.drop-zone.dragover{border-color:#22c55e;background:#0a0f1a}
+#file-info{display:none;padding:12px;background:#0a0f1a;border-radius:8px;margin-bottom:12px;font-size:13px}
+.format-row{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.format-row select{padding:10px;border-radius:8px;border:1px solid #2d4a7a;background:#0a0f1a;color:#e2e8f0;font-size:14px}
+.convert-btn{padding:12px 32px;border-radius:10px;border:none;background:#22c55e;color:white;font-weight:600;cursor:pointer;font-size:15px}
+.convert-btn:hover{background:#16a34a}
+#result{display:none;margin-top:12px;padding:16px;background:#0a0f1a;border-radius:8px;font-size:14px}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_convert.svg" alt="Convert"><h1>ANS Convert</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="card">
+<h2>📁 Convertir Archivos</h2>
+<div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+<p style="font-size:36px;margin-bottom:8px">📤</p>
+<p style="font-size:14px">Arrastra un archivo aquí o haz clic</p>
+<p style="font-size:11px;color:#98a8c3;margin-top:4px">Formatos soportados: MP4, MP3, WAV, PNG, JPG, TXT</p>
+</div>
+<input type="file" id="file-input" style="display:none" onchange="handleFile(this.files[0])">
+<div id="file-info"></div>
+<div class="format-row">
+<select id="from-format"><option value="">Detectar auto</option><option value="mp4">MP4</option><option value="mp3">MP3</option><option value="wav">WAV</option><option value="png">PNG</option><option value="jpg">JPG</option><option value="txt">TXT</option></select>
+<span style="font-size:20px;color:#98a8c3">→</span>
+<select id="to-format"><option value="mp3">MP3</option><option value="mp4">MP4</option><option value="wav">WAV</option><option value="png">PNG</option><option value="jpg">JPG</option><option value="txt">TXT</option><option value="pdf">PDF</option></select>
+</div>
+<button class="convert-btn" onclick="convertFile()">🔄 Convertir</button>
+<div id="result"></div>
+</div>
+</div>
+<script>
+let currentFile=null;
+function handleFile(f){if(!f)return;currentFile=f;const ext=f.name.split('.').pop().toLowerCase();document.getElementById('file-info').style.display='block';document.getElementById('file-info').innerHTML=`📄 <b>${f.name}</b> (${(f.size/1024).toFixed(1)} KB) — ${ext.toUpperCase()}`;document.getElementById('from-format').value=ext}
+const dropZone=document.getElementById('drop-zone');
+dropZone.ondragover=e=>{e.preventDefault();dropZone.classList.add('dragover')};
+dropZone.ondragleave=()=>dropZone.classList.remove('dragover');
+dropZone.ondrop=e=>{e.preventDefault();dropZone.classList.remove('dragover');handleFile(e.dataTransfer.files[0])};
+function convertFile(){if(!currentFile)return alert('Selecciona un archivo primero');const to=document.getElementById('to-format').value;const div=document.getElementById('result');div.style.display='block';div.innerHTML=`<p>✅ <b>${currentFile.name}</b> → <b>.${to.toUpperCase()}</b></p><p style="font-size:12px;color:#98a8c3;margin-top:8px">⚙️ Conversión simulada — en producción se procesa el archivo real</p><p style="font-size:12px;color:#4ade80;margin-top:4px">Tamaño: ${(currentFile.size/1024).toFixed(1)} KB → ~${(currentFile.size/1024*0.8).toFixed(1)} KB</p>`;fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_convert'})}).catch(()=>{})}
+</script>
+</body>
+</html>

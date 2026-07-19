@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><title>ANS Backup</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1624;color:#e2e8f0;font-family:'Poppins',sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:16px 24px;background:#1a2744;border-bottom:1px solid #2d4a7a}
+header img{width:32px;height:32px}
+header h1{font-size:18px;font-weight:600;flex:1}
+header a{color:#57a6ff;text-decoration:none;font-size:13px}
+.content{max-width:550px;margin:20px auto;padding:0 16px 40px}
+.card{background:#1a2744;border:1px solid #2d4a7a;border-radius:14px;padding:20px;margin-bottom:16px}
+.card h2{font-size:16px;margin-bottom:12px;color:#98a8c3;display:flex;align-items:center;gap:8px}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap}
+.btn{padding:12px 24px;border-radius:10px;border:none;font-weight:600;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:#3b82f6;color:white}
+.btn-primary:hover{background:#2563eb}
+.btn-success{background:#22c55e;color:white}
+.btn-success:hover{background:#16a34a}
+.btn-danger{background:#ef4444;color:white}
+.btn-danger:hover{background:#dc2626}
+.btn-secondary{background:#4a5568;color:white}
+.btn-secondary:hover{background:#374151}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.stats div{text-align:center;padding:12px;background:#0a0f1a;border-radius:10px}
+.stats div span{display:block;font-size:22px;font-weight:700}
+.stats div small{font-size:11px;color:#98a8c3}
+#file-input-label{padding:12px 24px;border-radius:10px;border:2px dashed #2d4a7a;text-align:center;cursor:pointer;display:block;color:#98a8c3;font-size:13px;transition:.2s}
+#file-input-label:hover{border-color:#22c55e;background:#0a0f1a}
+#import-status{font-size:13px;margin-top:8px;color:#98a8c3;word-wrap:break-word}
+details{background:#0a0f1a;border-radius:10px;padding:12px;margin-top:12px;font-size:12px}
+details summary{cursor:pointer;color:#98a8c3;font-weight:600}
+details pre{white-space:pre-wrap;word-wrap:break-word;font-size:11px;color:#98a8c3;margin-top:8px;max-height:300px;overflow-y:auto}
+@media(max-width:500px){
+.stats{grid-template-columns:1fr 1fr}.btn-group{flex-direction:column}.btn{justify-content:center}
+}
+</style>
+</head>
+<body>
+<header>
+<img src="/static/logos/ans_backup.svg" alt="Backup"><h1>ANS Backup</h1>
+<a href="/herramientas">← Herramientas</a>
+</header>
+<div class="content">
+<div class="stats" id="stats">
+<div><span id="stat-users">-</span><small>Usuarios</small></div>
+<div><span id="stat-tracks">-</span><small>Canciones</small></div>
+<div><span id="stat-size">-</span><small>Tamaño</small></div>
+</div>
+<div class="card">
+<h2>📤 Exportar datos</h2>
+<p style="font-size:13px;color:#98a8c3;margin-bottom:14px">Descarga toda la información de ANS en un archivo JSON</p>
+<div class="btn-group">
+<button class="btn btn-primary" onclick="exportBackup()">📥 Exportar todo</button>
+<button class="btn btn-secondary" onclick="previewBackup()">👁 Vista previa</button>
+</div>
+<details id="preview-box" style="display:none">
+<summary>Vista previa</summary>
+<pre id="preview-content"></pre>
+</details>
+</div>
+<div class="card">
+<h2>📥 Importar datos</h2>
+<p style="font-size:13px;color:#98a8c3;margin-bottom:14px">Restaura datos desde un archivo JSON de backup</p>
+<label id="file-input-label" for="import-file">📁 Seleccionar archivo JSON</label>
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this.files[0])">
+<div id="import-status"></div>
+</div>
+<div class="card">
+<h2>⚠️ Peligro</h2>
+<p style="font-size:13px;color:#98a8c3;margin-bottom:14px">Limpia todos los datos de ANS (solo owner)</p>
+<button class="btn btn-danger" onclick="clearAll()">🗑 Limpiar todo</button>
+</div>
+</div>
+<script>
+async function api(url,opts={}){
+try{const r=await fetch(url,{headers:{'Content-Type':'application/json',...opts.headers},...opts});const d=await r.json();if(d.error){document.getElementById('import-status').textContent='❌ '+d.error;return null}return d}catch(e){document.getElementById('import-status').textContent='❌ Error: '+e.message;return null}}
+
+async function loadStats(){
+const d=await api('/api/backup/export');
+if(!d)return;
+const users=d.users?Object.keys(d.users.users||{}).length:0;
+const tracks=d.music?d.music.tracks.length:0;
+const size=new Blob([JSON.stringify(d)]).size;
+document.getElementById('stat-users').textContent=users;
+document.getElementById('stat-tracks').textContent=tracks;
+document.getElementById('stat-size').textContent=(size/1024).toFixed(1)+'KB';
+}
+
+async function exportBackup(){
+const d=await api('/api/backup/export');
+if(!d)return;
+const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+a.download='ans_backup_'+new Date().toISOString().slice(0,10)+'.json';
+a.click();URL.revokeObjectURL(a.href);
+document.getElementById('import-status').textContent='✅ Backup descargado';
+fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_backup'})}).catch(()=>{});
+}
+
+async function previewBackup(){
+const pb=document.getElementById('preview-box');pc=document.getElementById('preview-content');
+if(pb.style.display!=='none'){pb.style.display='none';return}
+const d=await api('/api/backup/export');
+if(!d)return;
+const summary={users:Object.keys(d.users?.users||{}).length,memory:Object.keys(d.memory?.learned||{}).length,tracks:d.music?.tracks?.length||0,chats:Object.keys(d.chats||{}).length,messages:d.messages?.messages?.length||0,mail_files:Object.keys(d.mail||{}).length};
+pc.textContent=JSON.stringify(summary,null,2);
+pb.style.display='block';
+}
+
+async function importBackup(file){
+if(!file)return;
+const status=document.getElementById('import-status');
+status.textContent='📤 Procesando...';
+try{
+const text=await file.text();
+const data=JSON.parse(text);
+const r=await api('/api/backup/import',{method:'POST',body:text});
+if(r&&r.ok){status.textContent='✅ Datos importados correctamente';loadStats();fetch('/api/tokens/complete-mission',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mission:'use_backup'})}).catch(()=>{})}
+else{status.textContent='❌ Error al importar'}
+}catch(e){status.textContent='❌ Archivo inválido: '+e.message}
+}
+
+async function clearAll(){
+if(!confirm('¿Estás seguro? Esto eliminará TODOS los datos.'))return;
+if(!confirm('⚠️ Esta acción no se puede deshacer. ¿Continuar?'))return;
+const r=await api('/api/backup/import',{method:'POST',body:JSON.stringify({users:{users:{}},memory:{learned:{}},messages:{messages:[]},chats:{},music:{tracks:[]},mail:{}})});
+if(r&&r.ok){document.getElementById('import-status').textContent='🗑 Todos los datos han sido limpiados';loadStats()}
+}
+
+loadStats();
+</script>
+</body>
+</html>

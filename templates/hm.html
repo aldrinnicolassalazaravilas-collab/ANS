@@ -120,6 +120,34 @@
             50% { box-shadow: 0 0 0 5px transparent; opacity: .6; }
         }
 
+        .token-badge {
+            display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+            border-radius:999px;font-size:11px;font-weight:700;color:#fbbf24;
+            background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);
+            cursor:pointer;transition:all .2s;
+        }
+        .token-badge:hover{background:rgba(251,191,36,0.18);transform:translateY(-1px);}
+        .mis-card {
+            background:linear-gradient(180deg,rgba(15,22,36,0.96),rgba(11,16,28,0.96));
+            border:1.5px solid rgba(251,191,36,0.12);border-radius:20px;padding:20px 24px;
+            margin-top:20px;position:relative;overflow:hidden;
+        }
+        .mis-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+            background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:20px 20px 0 0;}
+        .mis-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+        .mis-title{font-size:15px;font-weight:700;color:#fbbf24;display:flex;align-items:center;gap:8px;}
+        .mis-balance{font-size:12px;color:#98a8c3;display:flex;align-items:center;gap:4px;}
+        .mis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;}
+        .mision-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;
+            background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+            font-size:11.5px;transition:all .2s;}
+        .mision-item.done{opacity:.5;background:rgba(52,211,153,0.06);border-color:rgba(52,211,153,0.15);}
+        .m-btn{padding:4px 10px;border-radius:999px;border:0;background:rgba(251,191,36,0.15);
+            color:#fbbf24;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;}
+        .m-btn:hover{background:rgba(251,191,36,0.25);transform:scale(1.05);}
+        .m-done{font-size:13px;}
+        .mis-footer{font-size:10px;color:#4a5568;margin-top:10px;text-align:center;}
+
         /* === MODEL CARDS === */
         .model-grid {
             display: grid;
@@ -317,6 +345,7 @@
         }
 
         .go-btn:active, .ghost-btn:active { transform: scale(.97); }
+        .msg-file{max-width:min(780px,88%)}.msg-file a{color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;background:rgba(87,166,255,0.06);border:1px solid rgba(87,166,255,0.1);font-size:13px;transition:all .2s}.msg-file a:hover{background:rgba(87,166,255,0.12)}.msg-file img,.msg-file video{max-width:100%;max-height:300px;border-radius:12px;display:block}
 
         /* === CAPABILITIES BAR === */
         .capabilities {
@@ -1035,11 +1064,12 @@
                 <label for="sidebar-detail">📏 Respuestas detalladas</label>
             </div>
         </div>
-        <div class="sidebar-section" style="display:flex;gap:8px;">
+        <div class="sidebar-section" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="window.location.href='/herramientas'" style="flex:1;min-width:70px;padding:8px;border-radius:8px;border:1px solid rgba(87,166,255,0.2);background:rgba(87,166,255,0.08);color:var(--accent);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">🔨 Herramientas</button>
             {% if is_owner %}
-            <button onclick="window.location.href='/admin'" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(87,166,255,0.2);background:rgba(87,166,255,0.08);color:var(--accent);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">Admin</button>
+            <button onclick="window.location.href='/admin'" style="flex:1;min-width:70px;padding:8px;border-radius:8px;border:1px solid rgba(168,85,247,0.2);background:rgba(168,85,247,0.08);color:#a855f7;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">Admin</button>
             {% endif %}
-            <button onclick="window.location.href='/logout'" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,107,107,0.2);background:rgba(255,107,107,0.08);color:var(--danger);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">Salir</button>
+            <button onclick="window.location.href='/logout'" style="flex:1;min-width:70px;padding:8px;border-radius:8px;border:1px solid rgba(255,107,107,0.2);background:rgba(255,107,107,0.08);color:var(--danger);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">Salir</button>
         </div>
     </aside>
     <!-- Sidebar Toggle Button -->
@@ -1066,6 +1096,7 @@
                 <div class="status-row">
                     <div class="status-pill online"><span class="status-dot-sm"></span> Motor local activo</div>
                     <div class="status-pill web"><span class="status-dot-sm"></span> Busqueda web</div>
+                    <span class="token-badge" onclick="toggleMisiones()" title="Tus tokens">🪙 <span id="token-count">-</span></span>
                 </div>
             </div>
 
@@ -1133,6 +1164,15 @@
                 <div class="cap-pill"><span class="cap-icon">🧠</span> Memoria persistente</div>
                 <div class="cap-pill"><span class="cap-icon">😂</span> Chistes tech</div>
                 <div class="cap-pill"><span class="cap-icon">📚</span> Aprendizaje automatico</div>
+            </div>
+
+            <div class="mis-card" id="mis-card">
+                <div class="mis-header">
+                    <span class="mis-title">🎯 Misiones diarias</span>
+                    <span class="mis-balance">🪙 <span id="token-balance">-</span></span>
+                </div>
+                <div class="mis-grid" id="misiones-list"></div>
+                <div class="mis-footer">Completa misiones usando las herramientas de ANS</div>
             </div>
 
             <div class="action-row">
@@ -2041,7 +2081,10 @@
             modal.innerHTML = `
                 <div style="background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;max-width:450px;width:100%;max-height:90vh;overflow:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                        <h3 style="color:var(--text);margin:0;">Herramientas</h3>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <img src="/static/logos/ans_ai.svg" alt="ANS AI" style="width:32px;height:32px;">
+                            <h3 style="color:var(--text);margin:0;">Herramientas</h3>
+                        </div>
                         <button onclick="document.getElementById('tools-modal').remove()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;">×</button>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -2206,7 +2249,7 @@
 
             const av = document.createElement('div');
             av.className = 'msg-av';
-            av.textContent = rol === 'user' ? '👤' : MODEL_META[modeloActivo].icon;
+            av.textContent = rol === 'user' ? 'Yo' : MODEL_META[modeloActivo].icon;
 
             const body = document.createElement('div');
             body.className = 'msg-body';
@@ -2374,6 +2417,7 @@
                 }
 
                 scrollAlFinal();
+                loadTokens();
             } catch (error) {
                 const thinkingElement = document.getElementById(thinkingId);
                 if (thinkingElement) thinkingElement.remove();
@@ -2405,7 +2449,54 @@
             } else {
                 historialConversacion = await cargarHistorial();
             }
+            loadTokens();
         })();
+
+        // === TOKEN SYSTEM ===
+        var tokenBalance = 0;
+
+        async function loadTokens() {
+            try {
+                const r = await fetch('/api/tokens');
+                const d = await r.json();
+                if (d) {
+                    tokenBalance = d.balance || 0;
+                    document.getElementById('token-count').textContent = tokenBalance;
+                    document.getElementById('token-balance').textContent = tokenBalance;
+                    renderMisiones(d);
+                }
+            } catch(e) {}
+        }
+
+        function renderMisiones(d) {
+            const l = document.getElementById('misiones-list');
+            if (!l) return;
+            l.innerHTML = '';
+            const completed = d.missions || {};
+            const allMissions = d.available_missions || [];
+            // Also show already completed missions
+            for (const mid in completed) {
+                const m = allMissions.find(x => x.id === mid);
+                if (m) {
+                    const div = document.createElement('div');
+                    div.className = 'mision-item done';
+                    div.innerHTML = `<span>${m.icon}</span><span style="flex:1">${m.name}</span><span class="m-done">✅</span>`;
+                    l.appendChild(div);
+                }
+            }
+            allMissions.forEach(m => {
+                if (completed[m.id]) return;
+                const div = document.createElement('div');
+                div.className = 'mision-item';
+                div.innerHTML = `<span>${m.icon}</span><span style="flex:1">${m.name}</span><span style="color:#4a5568;font-size:10px">⏳ haz la acción</span>`;
+                l.appendChild(div);
+            });
+        }
+
+        function toggleMisiones() {
+            const el = document.getElementById('mis-card');
+            if (el) el.scrollIntoView({behavior:'smooth',block:'center'});
+        }
     </script>
 </body>
 </html>
